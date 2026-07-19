@@ -18,6 +18,7 @@ public sealed class SoundboardStore
         public Dictionary<string, int> Volumes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, string> Colors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public List<string> Pinned { get; set; } = [];
+        public List<string> Order { get; set; } = [];
     }
 
     private static string StorePath => AppPaths.SoundboardPath;
@@ -99,6 +100,21 @@ public sealed class SoundboardStore
         Save();
     }
 
+    /// <summary>Manual sort position; unordered sounds go last (alphabetically).</summary>
+    public int OrderIndexOf(string path)
+    {
+        for (int i = 0; i < _data.Order.Count; i++)
+            if (string.Equals(_data.Order[i], path, StringComparison.OrdinalIgnoreCase))
+                return i;
+        return int.MaxValue;
+    }
+
+    public void SetOrder(IEnumerable<string> orderedPaths)
+    {
+        _data.Order = orderedPaths.ToList();
+        Save();
+    }
+
     public int? SlotOf(string path)
     {
         foreach (var (slot, slotPath) in _data.Slots)
@@ -133,6 +149,9 @@ public sealed class SoundboardStore
             _data.Colors[newPath] = color;
         if (_data.Pinned.RemoveAll(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase)) > 0)
             _data.Pinned.Add(newPath);
+        int orderIndex = _data.Order.FindIndex(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase));
+        if (orderIndex >= 0)
+            _data.Order[orderIndex] = newPath;
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, oldPath, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots[slot] = newPath;
@@ -145,6 +164,7 @@ public sealed class SoundboardStore
         _data.Volumes.Remove(path);
         _data.Colors.Remove(path);
         _data.Pinned.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        _data.Order.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, path, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots.Remove(slot);

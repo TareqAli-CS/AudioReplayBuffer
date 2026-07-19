@@ -213,7 +213,8 @@
                                         <DataTemplate>
                                             <Button Style="{StaticResource PadBtn}" Click="OnPadClick" Tag="{Binding}"
                                                     PreviewMouseLeftButtonDown="OnPadMouseDown"
-                                                    PreviewMouseMove="OnPadMouseMove">
+                                                    PreviewMouseMove="OnPadMouseMove"
+                                                    AllowDrop="True" DragOver="OnPadDragOver" Drop="OnPadDrop">
                                                 <Button.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="Play on this PC" Click="OnPadPlayLocalClick"/>

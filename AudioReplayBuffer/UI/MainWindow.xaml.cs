@@ -722,6 +722,7 @@ public partial class MainWindow : Window
                                 p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                                 Path.GetFileName(p.FullPath).Contains(query, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(p => p.Pinned)
+                    .ThenBy(p => store.OrderIndexOf(p.FullPath))
                     .ThenBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
@@ -845,14 +846,83 @@ public partial class MainWindow : Window
 
     private void OnSoundboardDragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        if (e.Data.GetDataPresent(SoundDragFormat))
+            e.Effects = DragDropEffects.Move;
+        else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+        else
+            e.Effects = DragDropEffects.None;
         e.Handled = true;
     }
 
     private void OnSoundboardDrop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+        if (e.Data.GetData(SoundDragFormat) is string soundPath)
+            ReorderSound(soundPath, null); // dropped on empty space → move to the end
+        else if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
             ImportSounds(files);
+    }
+
+    // ---- drag-to-reorder: drop a pad onto another pad to place it before it ----
+
+    private void OnPadDragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(SoundDragFormat))
+        {
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        }
+    }
+
+    private void OnPadDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(SoundDragFormat) is not string draggedPath ||
+            (sender as FrameworkElement)?.Tag is not SoundPad target)
+            return;
+        e.Handled = true;
+        if (!string.Equals(draggedPath, target.FullPath, StringComparison.OrdinalIgnoreCase))
+            ReorderSound(draggedPath, target.FullPath);
+    }
+
+    /// <summary>
+    /// Moves a sound before the target (null = to the end) and persists the
+    /// full manual order. The order is global, so it holds across category
+    /// views and search filters.
+    /// </summary>
+    private void ReorderSound(string draggedPath, string? targetPath)
+    {
+        try
+        {
+            var store = _controller.Soundboard;
+            string lib = _controller.SoundLibraryDir;
+            if (!Directory.Exists(lib))
+                return;
+
+            // Materialize the current effective order of the whole library.
+            var all = new DirectoryInfo(lib)
+                .EnumerateFiles("*", SearchOption.AllDirectories)
+                .Where(f => f.Extension is ".mp3" or ".wav")
+                .Select(f => f.FullName)
+                .OrderBy(store.OrderIndexOf)
+                .ThenBy(p => store.GetLabel(p) ?? Path.GetFileNameWithoutExtension(p),
+                        StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            all.RemoveAll(p => string.Equals(p, draggedPath, StringComparison.OrdinalIgnoreCase));
+            int insertAt = targetPath == null
+                ? all.Count
+                : all.FindIndex(p => string.Equals(p, targetPath, StringComparison.OrdinalIgnoreCase));
+            if (insertAt < 0)
+                insertAt = all.Count;
+            all.Insert(insertAt, draggedPath);
+
+            store.SetOrder(all);
+            RefreshSoundboard();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Reorder failed: " + ex);
+        }
     }
 
     /// <summary>Copies audio files into the library — into the selected category, if one is active.</summary>

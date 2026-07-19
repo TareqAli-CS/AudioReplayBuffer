@@ -85,6 +85,7 @@ Windows doesn't let apps inject audio into a physical microphone, so every sound
 - **Play:** click a pad (green border = playing; click again stops it). *Stop all* or `Ctrl+Alt+0` silences everything instantly.
 - **Organize:** ＋ Category creates a category (a subfolder of the library — everything stays visible in Explorer). Drag pads onto chips to move sounds (**Ctrl+drag copies**), or right-click → *Move / copy to category…*.
 - **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, and `Ctrl+Alt+1..9` hotkey slot. *Pin / unpin* keeps favorites at the top.
+- **Reorder:** drag a pad **onto another pad** to place it before it, or onto empty grid space to send it to the end — the order is remembered.
 - **Edit:** right-click → *Edit sound…* opens the full editor; saved copies appear on the board immediately.
 - **Find:** the search box filters pads as you type; `Ctrl+Alt+Q` opens the global launcher with the same search.
 
