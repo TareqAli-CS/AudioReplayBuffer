@@ -2,7 +2,7 @@
 ; Build: ISCC.exe AudioReplayBuffer.iss   (expects the app published to ..\publish)
 
 #define MyAppName "Audio Replay Buffer"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "TareqAli-CS"
 #define MyAppURL "https://github.com/TareqAli-CS/AudioReplayBuffer"
 #define MyAppExeName "AudioReplayBuffer.exe"

@@ -138,6 +138,58 @@ public sealed class VoicePlayer : IDisposable
     });
 
     /// <summary>
+    /// Short volume ramp before disposal so manual stops don't pop; also
+    /// gives a natural crossfade when a new sound interrupts the previous.
+    /// </summary>
+    private static void FadeOutAndDispose(List<Session> sessions)
+    {
+        if (sessions.Count == 0)
+            return;
+        Task.Run(async () =>
+        {
+            var readers = sessions
+                .SelectMany(s => s.Outputs.Select(o => (o.Reader, Initial: o.Reader.Volume)))
+                .ToList();
+            const int steps = 8;
+            for (int i = steps - 1; i >= 0; i--)
+            {
+                foreach (var (reader, initial) in readers)
+                    try { reader.Volume = initial * i / steps; } catch { }
+                await Task.Delay(16);
+            }
+            foreach (var session in sessions)
+                foreach (var (output, reader) in session.Outputs)
+                {
+                    try { output.Stop(); } catch { }
+                    output.Dispose();
+                    reader.Dispose();
+                }
+        });
+    }
+
+    /// <summary>Playback position 0..1 of a file currently playing, or null.</summary>
+    public double? ProgressOf(string path)
+    {
+        lock (_lock)
+        {
+            foreach (var session in _sessions)
+            {
+                if (!string.Equals(session.Path, path, StringComparison.OrdinalIgnoreCase) ||
+                    session.Outputs.Count == 0)
+                    continue;
+                try
+                {
+                    var reader = session.Outputs[0].Reader;
+                    if (reader.Length > 0)
+                        return Math.Clamp((double)reader.Position / reader.Length, 0, 1);
+                }
+                catch { }
+            }
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Silences the speakers copies of everything currently playing (the
     /// virtual-mic copies keep going). The echo escape hatch.
     /// </summary>
@@ -177,8 +229,7 @@ public sealed class VoicePlayer : IDisposable
             foreach (var session in hits)
                 _sessions.Remove(session);
         }
-        foreach (var session in hits)
-            DisposeSessionAsync(session);
+        FadeOutAndDispose(hits);
     }
 
     public void Stop()
@@ -189,8 +240,7 @@ public sealed class VoicePlayer : IDisposable
             all = [.. _sessions];
             _sessions.Clear();
         }
-        foreach (var session in all)
-            DisposeSessionAsync(session);
+        FadeOutAndDispose(all);
     }
 
     public void Dispose() => Stop();

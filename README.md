@@ -17,8 +17,9 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 **Soundboard**
 - Pad grid with its own library — **drag & drop MP3/WAV files** to import, or promote replays with one click
 - **Categories** (chips above the grid, folder-backed) — drag pads onto chips to move sounds, Ctrl+drag to copy, drop Explorer files on a chip to import straight into it
-- Per-sound **volume** (10–300%), **pad colors**, **pin to top**, labels independent of file names
-- **Global hotkeys**: bind sounds to `Ctrl+Alt+1`–`9`, stop everything with `Ctrl+Alt+0` or the **Stop all** button
+- Per-sound **volume** (10–300%), **pad colors**, **pin to top**, labels independent of file names, playing pads show a **progress bar**
+- **Global hotkeys**: bind sounds to `Ctrl+Alt+1`–`9` — or give any sound a fully **custom hotkey** (`Ctrl+Shift+B`, `F9`, …); stop everything with `Ctrl+Alt+0` or **Stop all** (with a smooth fade-out)
+- **Export / Import** the whole board as a zip — share your soundboard with friends, sounds + labels + colors + hotkeys included
 - **Quick launcher** — `Ctrl+Alt+Q` anywhere (even mid-game): type two letters, Enter, the sound plays into your call
 - **Overlap or interrupt** mode: layer sounds over each other, or let each new sound cut the previous one
 
@@ -31,6 +32,7 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 **Editor**
 - Two **range handles** under the waveform — saving exports exactly the enclosed range, so trimming is drag → Save as copy
 - Cut sections, fade in/out, volume, normalize, undo; preview with a live playhead
+- **Effects:** reverse, 🐿 chipmunk (fast + high) and 🐻 deep voice (slow + low) — applied to the selection or the whole sound
 - Safe overwrite (encodes to a temp file first — a failed save can never destroy the original)
 
 **App**
@@ -84,7 +86,8 @@ Windows doesn't let apps inject audio into a physical microphone, so every sound
 
 - **Play:** click a pad (green border = playing; click again stops it). *Stop all* or `Ctrl+Alt+0` silences everything instantly.
 - **Organize:** ＋ Category creates a category (a subfolder of the library — everything stays visible in Explorer). Drag pads onto chips to move sounds (**Ctrl+drag copies**), or right-click → *Move / copy to category…*.
-- **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, and `Ctrl+Alt+1..9` hotkey slot. *Pin / unpin* keeps favorites at the top.
+- **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, a `Ctrl+Alt+1..9` slot **or any custom hotkey combo**. *Pin / unpin* keeps favorites at the top.
+- **Share:** the **Export** button zips the whole board (sounds + labels + colors + hotkeys + order); **Import** merges someone else's board into yours without overwriting anything.
 - **Reorder:** drag a pad **onto another pad** to place it before it, or onto empty grid space to send it to the end — the order is remembered.
 - **Edit:** right-click → *Edit sound…* opens the full editor; saved copies appear on the board immediately.
 - **Find:** the search box filters pads as you type; `Ctrl+Alt+Q` opens the global launcher with the same search.

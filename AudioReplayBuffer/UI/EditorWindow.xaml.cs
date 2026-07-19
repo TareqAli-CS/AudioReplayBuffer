@@ -382,6 +382,76 @@ public partial class EditorWindow : Window
         AfterEdit($"Normalized (peak was {20 * Math.Log10(peak):0.0} dB).");
     }
 
+    private void OnReverseClick(object sender, RoutedEventArgs e)
+    {
+        var (start, end) = RangeOrAll();
+        if (end <= start)
+            return;
+        StopPlayback();
+        PushUndo();
+        _samples = (float[])_samples.Clone();
+        long lo = start, hi = end - 1;
+        while (lo < hi)
+        {
+            for (int ch = 0; ch < Channels; ch++)
+                (_samples[lo * Channels + ch], _samples[hi * Channels + ch]) =
+                    (_samples[hi * Channels + ch], _samples[lo * Channels + ch]);
+            lo++;
+            hi--;
+        }
+        AfterEdit("Reversed.");
+    }
+
+    private void OnChipmunkClick(object sender, RoutedEventArgs e) => ApplyRate(1.4f, "Chipmunk");
+
+    private void OnDeepVoiceClick(object sender, RoutedEventArgs e) => ApplyRate(0.72f, "Deep voice");
+
+    /// <summary>
+    /// Tape-style speed change: rate &gt; 1 = faster and higher-pitched.
+    /// The segment is resampled to 48000/rate and played back at 48000,
+    /// which shifts pitch and duration together.
+    /// </summary>
+    private void ApplyRate(float rate, string name)
+    {
+        var (start, end) = RangeOrAll();
+        if (end <= start)
+            return;
+        StopPlayback();
+        PushUndo();
+
+        int fromSample = (int)(start * Channels);
+        int toSample = (int)(end * Channels);
+        var source = new ArraySampleProvider(_samples, fromSample, toSample);
+        var resampler = new WdlResamplingSampleProvider(source, (int)Math.Round(SampleRate / rate));
+
+        var chunks = new List<float[]>();
+        long total = 0;
+        var buffer = new float[SampleRate * Channels];
+        int read;
+        while ((read = resampler.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            chunks.Add(buffer[..read]);
+            total += read;
+        }
+
+        var segment = new float[total];
+        long offset = 0;
+        foreach (var chunk in chunks)
+        {
+            chunk.CopyTo(segment, offset);
+            offset += chunk.Length;
+        }
+        // Keep whole frames only.
+        int segmentSamples = (int)(total - total % Channels);
+
+        var result = new float[fromSample + segmentSamples + (_samples.Length - toSample)];
+        Array.Copy(_samples, 0, result, 0, fromSample);
+        Array.Copy(segment, 0, result, fromSample, segmentSamples);
+        Array.Copy(_samples, toSample, result, fromSample + segmentSamples, _samples.Length - toSample);
+        _samples = result;
+        AfterEdit($"{name} applied.");
+    }
+
     private void OnUndoClick(object sender, RoutedEventArgs e)
     {
         if (_undoStack.Count == 0)

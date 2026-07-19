@@ -26,8 +26,33 @@ public partial class MainWindow : Window
 
     private sealed record RecentItem(string Name, string Details, string FullPath);
 
-    private sealed record SoundPad(string Title, string Sub, string FullPath, bool IsPlaying,
-                                   Brush? Color, bool Pinned);
+    /// <summary>Pad view model; IsPlaying/Progress update live without rebuilding the grid.</summary>
+    private sealed class SoundPad : System.ComponentModel.INotifyPropertyChanged
+    {
+        public required string Title { get; init; }
+        public required string Sub { get; init; }
+        public required string FullPath { get; init; }
+        public Brush? Color { get; init; }
+        public bool Pinned { get; init; }
+
+        private bool _isPlaying;
+        public bool IsPlaying
+        {
+            get => _isPlaying;
+            set { if (_isPlaying != value) { _isPlaying = value; Notify(nameof(IsPlaying)); } }
+        }
+
+        private double _progress;
+        public double Progress
+        {
+            get => _progress;
+            set { if (Math.Abs(_progress - value) > 0.1) { _progress = value; Notify(nameof(Progress)); } }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void Notify(string name) =>
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+    }
 
     /// <summary>Selected category chip; null = All.</summary>
     private string? _selectedCategory;
@@ -118,6 +143,18 @@ public partial class MainWindow : Window
         {
             _waveTicks = 0;
             WaveView.Update(_controller.WaveformSnapshot);
+        }
+
+        // Live playing state + progress on the pads, without grid rebuilds.
+        if (SoundboardView.Visibility == Visibility.Visible &&
+            PadsGrid.ItemsSource is IEnumerable<SoundPad> pads)
+        {
+            foreach (var pad in pads)
+            {
+                bool playing = _voicePlayer.IsPlayingPath(pad.FullPath);
+                pad.IsPlaying = playing;
+                pad.Progress = playing ? (_voicePlayer.ProgressOf(pad.FullPath) ?? 0) * 100 : 0;
+            }
         }
     }
 
@@ -344,7 +381,8 @@ public partial class MainWindow : Window
             store.GetVolume(path),
             isLibrarySound ? GetCategories() : null,
             currentCategory,
-            store.GetColor(path))
+            store.GetColor(path),
+            store.GetHotkey(path))
         { Owner = this };
         dialog.ShowDialog();
         if (!dialog.Saved)
@@ -380,6 +418,7 @@ public partial class MainWindow : Window
             store.AssignSlot(dialog.SlotResult, path);
             store.SetVolume(path, dialog.VolumeResult);
             store.SetColor(path, dialog.ColorResult);
+            store.SetHotkey(path, dialog.CustomHotkeyResult);
             string warning = _controller.RegisterHotkey();
             RefreshRecentList();
             RefreshSoundboard();
@@ -705,6 +744,8 @@ public partial class MainWindow : Window
                         string sub = duration is TimeSpan d ? AppController.Fmt(d) : "";
                         if (slot != null)
                             sub += $"  ⌨{slot}";
+                        if (store.GetHotkey(f.FullName) is string customHotkey)
+                            sub += $"  ⌨{customHotkey}";
                         int volume = store.GetVolume(f.FullName);
                         if (volume != 100)
                             sub += $"  {volume}%";
@@ -714,9 +755,15 @@ public partial class MainWindow : Window
                             !string.Equals(f.DirectoryName, lib, StringComparison.OrdinalIgnoreCase) &&
                             parent.Length > 0)
                             sub += $"  · {parent}";
-                        return new SoundPad(title, sub.Trim(), f.FullName,
-                            _voicePlayer.IsPlayingPath(f.FullName),
-                            ParsePadColor(store.GetColor(f.FullName)), pinned);
+                        return new SoundPad
+                        {
+                            Title = title,
+                            Sub = sub.Trim(),
+                            FullPath = f.FullName,
+                            Color = ParsePadColor(store.GetColor(f.FullName)),
+                            Pinned = pinned,
+                            IsPlaying = _voicePlayer.IsPlayingPath(f.FullName)
+                        };
                     })
                     .Where(p => query.Length == 0 ||
                                 p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -955,6 +1002,59 @@ public partial class MainWindow : Window
         RefreshSoundboard();
         if (imported > 0)
             ShowSaveStatus($"Added {imported} sound{(imported == 1 ? "" : "s")} to the soundboard.", ok: true);
+    }
+
+    private void OnExportBoardClick(object sender, RoutedEventArgs e)
+    {
+        string lib = _controller.SoundLibraryDir;
+        if (!Directory.Exists(lib))
+        {
+            ShowSaveStatus("The soundboard is empty — nothing to export.", ok: false);
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export soundboard",
+            Filter = "Soundboard package (*.zip)|*.zip",
+            FileName = $"Soundboard-{DateTime.Now:yyyy-MM-dd}.zip"
+        };
+        if (dialog.ShowDialog(this) != true)
+            return;
+        try
+        {
+            int count = BoardPackage.Export(lib, _controller.Soundboard, dialog.FileName);
+            ShowSaveStatus($"Exported {count} sound{(count == 1 ? "" : "s")} to {Path.GetFileName(dialog.FileName)}.", ok: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Board export failed: " + ex);
+            ShowSaveStatus("Export failed: " + ex.Message, ok: false);
+        }
+    }
+
+    private void OnImportBoardClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import soundboard package",
+            Filter = "Soundboard package (*.zip)|*.zip"
+        };
+        if (dialog.ShowDialog(this) != true)
+            return;
+        try
+        {
+            int count = BoardPackage.Import(dialog.FileName, _controller.SoundLibraryDir, _controller.Soundboard);
+            string warning = _controller.RegisterHotkey();
+            RefreshSoundboard();
+            ShowSaveStatus(
+                $"Imported {count} sound{(count == 1 ? "" : "s")}." +
+                (warning.Length > 0 ? " Note: " + warning : ""), ok: warning.Length == 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Board import failed: " + ex);
+            ShowSaveStatus("Import failed: " + ex.Message, ok: false);
+        }
     }
 
     private void OnSendToSoundboardClick(object sender, RoutedEventArgs e)

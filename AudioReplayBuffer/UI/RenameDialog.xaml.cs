@@ -15,6 +15,8 @@ public partial class RenameDialog : Window
     public string FileNameResult => NameBox.Text.Trim();
     public int? SlotResult => SlotBox.SelectedIndex <= 0 ? null : SlotBox.SelectedIndex;
     public int VolumeResult => (int)VolumeSlider.Value;
+    public string? CustomHotkeyResult =>
+        CustomHotkeyBox.Text.Trim().Length == 0 ? null : CustomHotkeyBox.Text.Trim();
 
     private static readonly string?[] PadColors =
         [null, "#E5484D", "#E5A33B", "#46C066", "#4F8CFF", "#A06CE5", "#E56CB3", "#8B8B96"];
@@ -31,7 +33,7 @@ public partial class RenameDialog : Window
     public RenameDialog(string label, string fileNameNoExt, string extension, int? currentSlot,
                         Func<int, string?> pathOfSlot, int volumePercent = 100,
                         IReadOnlyList<string>? categories = null, string? currentCategory = null,
-                        string? currentColor = null)
+                        string? currentColor = null, string? currentCustomHotkey = null)
     {
         InitializeComponent();
         LabelBox.Text = label;
@@ -40,6 +42,7 @@ public partial class RenameDialog : Window
         VolumeSlider.Value = volumePercent;
         VolumeText.Text = $"{volumePercent}%";
 
+        CustomHotkeyBox.Text = currentCustomHotkey ?? "";
         _selectedColor = currentColor;
         BuildColorRow();
 

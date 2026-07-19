@@ -193,12 +193,20 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="PadSearchBox" Grid.Column="0" TextChanged="OnPadSearchChanged"
                                      ToolTip="Type to filter sounds"/>
                             <Button Grid.Column="1" Style="{StaticResource Btn}" Content="＋ Add sounds"
                                     Padding="10,5" FontSize="12" Margin="8,0,0,0" Click="OnAddSoundsClick"
                                     ToolTip="Import MP3/WAV files into the soundboard (you can also drag &amp; drop them here)"/>
+                            <Button Grid.Column="2" Style="{StaticResource Btn}" Content="Import" Padding="10,5"
+                                    FontSize="12" Margin="8,0,0,0" Click="OnImportBoardClick"
+                                    ToolTip="Import a soundboard package (.zip) shared by someone — sounds, labels, colors and hotkeys included"/>
+                            <Button Grid.Column="3" Style="{StaticResource Btn}" Content="Export" Padding="10,5"
+                                    FontSize="12" Margin="8,0,0,0" Click="OnExportBoardClick"
+                                    ToolTip="Export the whole soundboard as a zip to share or back up"/>
                         </Grid>
                         <WrapPanel x:Name="CategoryChips" DockPanel.Dock="Top" Margin="0,0,0,6"/>
                         <Grid>
@@ -239,6 +247,20 @@
                                                                    MaxHeight="34" TextTrimming="CharacterEllipsis"/>
                                                         <TextBlock Text="{Binding Sub}" FontSize="10"
                                                                    Foreground="{StaticResource DimBrush}" Margin="0,4,0,0"/>
+                                                        <ProgressBar Height="3" Maximum="100" Margin="0,5,0,0"
+                                                                     Foreground="{StaticResource GreenBrush}"
+                                                                     Value="{Binding Progress, Mode=OneWay}">
+                                                            <ProgressBar.Style>
+                                                                <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </ProgressBar.Style>
+                                                        </ProgressBar>
                                                     </StackPanel>
                                                 </Grid>
                                             </Button>

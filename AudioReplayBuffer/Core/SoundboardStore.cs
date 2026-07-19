@@ -19,17 +19,20 @@ public sealed class SoundboardStore
         public Dictionary<string, string> Colors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public List<string> Pinned { get; set; } = [];
         public List<string> Order { get; set; } = [];
+        public Dictionary<string, string> Hotkeys { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static string StorePath => AppPaths.SoundboardPath;
+    private readonly string _storePath;
     private readonly StoreData _data;
 
-    public SoundboardStore()
+    /// <param name="storePath">Override for tests; default is soundboard.json in AppData.</param>
+    public SoundboardStore(string? storePath = null)
     {
+        _storePath = storePath ?? AppPaths.SoundboardPath;
         try
         {
-            _data = File.Exists(StorePath)
-                ? JsonSerializer.Deserialize<StoreData>(File.ReadAllText(StorePath)) ?? new StoreData()
+            _data = File.Exists(_storePath)
+                ? JsonSerializer.Deserialize<StoreData>(File.ReadAllText(_storePath)) ?? new StoreData()
                 : new StoreData();
         }
         catch (Exception ex)
@@ -43,7 +46,7 @@ public sealed class SoundboardStore
     {
         try
         {
-            File.WriteAllText(StorePath, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(_storePath, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception ex)
         {
@@ -100,6 +103,22 @@ public sealed class SoundboardStore
         Save();
     }
 
+    /// <summary>Custom global hotkey for a sound (beyond the 1–9 slots), or null.</summary>
+    public string? GetHotkey(string path)
+        => _data.Hotkeys.TryGetValue(path, out var hotkey) ? hotkey : null;
+
+    public void SetHotkey(string path, string? hotkey)
+    {
+        if (string.IsNullOrWhiteSpace(hotkey))
+            _data.Hotkeys.Remove(path);
+        else
+            _data.Hotkeys[path] = hotkey.Trim();
+        Save();
+    }
+
+    /// <summary>All custom hotkey bindings (path → hotkey).</summary>
+    public IReadOnlyDictionary<string, string> CustomHotkeys => _data.Hotkeys;
+
     /// <summary>Manual sort position; unordered sounds go last (alphabetically).</summary>
     public int OrderIndexOf(string path)
     {
@@ -152,6 +171,8 @@ public sealed class SoundboardStore
         int orderIndex = _data.Order.FindIndex(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase));
         if (orderIndex >= 0)
             _data.Order[orderIndex] = newPath;
+        if (_data.Hotkeys.Remove(oldPath, out var hotkey))
+            _data.Hotkeys[newPath] = hotkey;
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, oldPath, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots[slot] = newPath;
@@ -165,6 +186,7 @@ public sealed class SoundboardStore
         _data.Colors.Remove(path);
         _data.Pinned.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
         _data.Order.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        _data.Hotkeys.Remove(path);
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, path, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots.Remove(slot);

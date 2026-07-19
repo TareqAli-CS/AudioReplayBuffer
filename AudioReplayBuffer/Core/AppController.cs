@@ -15,6 +15,9 @@ public sealed class AppController : IDisposable
     private const int LauncherHotkeyId = 3;
     private const int SlotHotkeyBase = 10; // slots 1..9 → ids 11..19
     private const int StopSoundHotkeyId = 20;
+    private const int CustomHotkeyBase = 100; // per-sound custom hotkeys
+
+    private readonly Dictionary<int, string> _customHotkeyPaths = [];
 
     private readonly object _applyLock = new();
     private readonly HotkeyManager _hotkeys;
@@ -67,6 +70,11 @@ public sealed class AppController : IDisposable
             else if (id == StopSoundHotkeyId) Voice.Stop();
             else if (id > SlotHotkeyBase && id <= SlotHotkeyBase + SoundboardStore.SlotCount)
                 PlaySlot(id - SlotHotkeyBase);
+            else if (_customHotkeyPaths.TryGetValue(id, out var customPath))
+            {
+                if (PlaySound(customPath))
+                    Logger.Log($"Custom hotkey → {Path.GetFileName(customPath)}");
+            }
         };
     }
 
@@ -99,7 +107,7 @@ public sealed class AppController : IDisposable
             }
         }
 
-        if (Soundboard.AnySlotAssigned)
+        if (Soundboard.AnySlotAssigned || Soundboard.CustomHotkeys.Count > 0)
         {
             if (!_hotkeys.TryRegister(StopSoundHotkeyId, "Ctrl+Alt+D0", out string stopError))
                 errors.Add(stopError);
@@ -107,6 +115,23 @@ public sealed class AppController : IDisposable
         else
         {
             _hotkeys.Unregister(StopSoundHotkeyId);
+        }
+
+        // Per-sound custom hotkeys get dynamic ids; re-registered from scratch
+        // so removed bindings release their key combos.
+        foreach (int id in _customHotkeyPaths.Keys)
+            _hotkeys.Unregister(id);
+        _customHotkeyPaths.Clear();
+        int nextId = CustomHotkeyBase;
+        foreach (var (path, hotkey) in Soundboard.CustomHotkeys)
+        {
+            if (!File.Exists(path))
+                continue;
+            if (_hotkeys.TryRegister(nextId, hotkey, out string customError))
+                _customHotkeyPaths[nextId] = path;
+            else
+                errors.Add(customError);
+            nextId++;
         }
 
         return string.Join(" ", errors);

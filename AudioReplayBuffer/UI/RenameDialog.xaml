@@ -36,8 +36,12 @@
         <TextBlock x:Name="CategoryLabel" Text="Category" Style="{StaticResource Lbl}"/>
         <ComboBox x:Name="CategoryBox" SelectionChanged="OnCategoryChanged"/>
 
-        <TextBlock Text="Soundboard hotkey" Style="{StaticResource Lbl}"/>
+        <TextBlock Text="Soundboard hotkey (slot)" Style="{StaticResource Lbl}"/>
         <ComboBox x:Name="SlotBox"/>
+
+        <TextBlock Text="Custom hotkey (any combo, optional)" Style="{StaticResource Lbl}"/>
+        <TextBox x:Name="CustomHotkeyBox"
+                 ToolTip="e.g. Ctrl+Shift+B, F9, Numpad5 — leave empty for none. Plays this sound into the call from anywhere."/>
         <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
                    Text="The hotkey plays this sound into your call from anywhere, even mid-game. Ctrl+Alt+0 stops playback. Picking a hotkey that is in use moves it to this sound."/>
 
