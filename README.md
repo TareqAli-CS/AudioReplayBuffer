@@ -51,7 +51,7 @@ Then run `publish\AudioReplayBuffer.exe`. The installer itself is built from [in
 
 ## Quick Start
 
-1. **Run the app.** It immediately starts buffering desktop audio (the red *Recording* dot and level meter confirm it).
+1. **Run the app.** It immediately starts buffering desktop audio (the red *Recording* dot and level meter confirm it). The **■ Stop / ▶ Start** button halts and resumes buffering; every launch always starts in the recording state.
 2. **Press `Ctrl+Alt+S`** anytime — the last 5 minutes land in `Music\Replays` as an MP3. **`Ctrl+Alt+D`** saves just the last 30 seconds.
 3. **Double-click a replay** in the list to play it into your call, or right-click for more (edit, rename, show in Explorer, delete).
 4. Open **⚙ Settings** to change what's captured, buffer length, hotkeys, MP3 quality and output folder. Changes apply instantly.
@@ -92,7 +92,7 @@ The save hotkeys and clip length are configurable in Settings.
 
 ## Configuration
 
-Everything lives in `appsettings.json` next to the exe (editable from the Settings window — restart not required):
+Everything lives in `appsettings.json` in `%AppData%\AudioReplayBuffer` (editable from the Settings window — restart not required). Settings survive app updates and reinstalls:
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -105,7 +105,7 @@ Everything lives in `appsettings.json` next to the exe (editable from the Settin
 | `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — | Play-to-mic device, volume, self-monitor |
 | `DesktopGain` / `MicrophoneGain` | `1.0` | Per-source capture volume |
 
-Labels and soundboard slots are stored in `soundboard.json` next to the exe.
+Labels and soundboard slots are stored in `soundboard.json` in the same folder.
 
 ## Troubleshooting
 
@@ -113,7 +113,7 @@ Labels and soundboard slots are stored in `soundboard.json` next to the exe.
 - **Per-app capture says the app is not running** — start the target app first, or switch back to *All apps*. Requires Windows 10 2004+.
 - **No sound in your call from Play to mic** — double-check step 3 above: the call app must use the *cable's microphone* as its input.
 - **Nothing captured while the PC was silent** — that's by design; silence is recorded as silence, and the buffer timeline stays accurate.
-- Errors are logged to `log.txt` next to the exe.
+- Errors are logged to `log.txt` in `%AppData%\AudioReplayBuffer`. Unexpected errors won't kill the app — it logs them and keeps recording.
 
 ## Tech Notes
 
