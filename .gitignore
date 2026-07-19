@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# Runtime files created next to the exe
+log.txt
+soundboard.json
+appsettings.json.bak
+
+# Local test artifacts
+TestOutput/
