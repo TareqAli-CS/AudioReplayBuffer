@@ -45,6 +45,7 @@ public partial class MainWindow : Window
 
         UpdateStaticTexts();
         RefreshRecentList();
+        RefreshSoundboard(); // soundboard is the home tab
         UpdateTabVisuals();
 
         _controller.ReplaySaved += (path, duration) => Dispatcher.BeginInvoke(() =>
@@ -497,6 +498,15 @@ public partial class MainWindow : Window
     {
         if (PadFromMenuItem(sender) is SoundPad pad)
             ShowSoundProperties(pad.FullPath);
+    }
+
+    private void OnPadEditClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is not SoundPad pad || !File.Exists(pad.FullPath))
+            return;
+        var editor = new EditorWindow(pad.FullPath, _controller.Settings) { Owner = this };
+        editor.FileSaved += () => Dispatcher.BeginInvoke(RefreshSoundboard);
+        editor.Show();
     }
 
     private void OnPadExplorerClick(object sender, RoutedEventArgs e)
