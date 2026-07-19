@@ -81,6 +81,15 @@ public partial class App : Application
 
         if (!e.Args.Contains("--minimized"))
             ShowMainWindow();
+
+        // Quiet startup update check: only speaks up when something newer exists.
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            var result = await UpdateChecker.CheckAsync();
+            if (result is { IsNewer: true } update)
+                Dispatcher.BeginInvoke(() => _tray?.NotifyUpdateAvailable(update.LatestTag));
+        });
     }
 
     /// <summary>

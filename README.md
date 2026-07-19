@@ -3,129 +3,134 @@
 
 # 🔴 Audio Replay Buffer
 
-**An audio-only replay buffer for Windows.** It silently keeps the last few minutes of your PC's sound in RAM — press a hotkey and that moment is saved as an MP3. Like OBS Replay Buffer, but for audio only: no video encoding, no disk writes while idle, ~0% CPU.
+**A soundboard that records its own material.** Two tools in one Windows app:
 
-Someone said something hilarious on Discord? Clutch game moment? Press **Ctrl+Alt+D** and the last 30 seconds are yours forever. Then trim it, give it a name, bind it to a hotkey, and replay it into your next call.
+- 🎛 A **soundboard** — a pad grid of sounds you fire into your Discord/voice call with a click or a global hotkey, organized into categories, with per-sound colors and volumes.
+- 🎙 An **audio replay buffer** — like OBS Replay Buffer but audio-only: the last minutes of your PC's sound are always in RAM, and one hotkey saves the moment as an MP3. Trim it in the built-in editor, and it becomes your next soundboard pad.
 
-![Audio Replay Buffer main window](docs/screenshot.png)
+Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in two drags, drop it on the board — and replay it at them forever. All at ~0% CPU while idle.
+
+![Audio Replay Buffer](docs/screenshot.png)
 
 ## Features
 
-- 🎧 **Rolling replay buffer** — keeps the last 1–30 minutes (configurable) of audio in RAM. Nothing is written to disk until you save.
-- ⚡ **Two save hotkeys** — `Ctrl+Alt+S` saves the whole buffer, `Ctrl+Alt+D` saves just the last 30 seconds (both configurable).
-- 🎯 **Per-app capture** — record only one app's audio (just the game, just Discord…), or everything *except* one app, using the Windows process-loopback API. Or capture the whole desktop, or the microphone, or both mixed.
-- ✂️ **Built-in editor** — trim with two range handles, cut sections out, fade in/out, adjust volume, normalize, undo — then save as a copy or overwrite.
-- 🎙️ **Play to mic** — play any replay into your call via a virtual audio cable (Voicemod / VB-CABLE). Live volume control, optional self-monitor.
-- 🎛️ **Full soundboard** — a pad grid with its own sound library: drag & drop any MP3/WAV in, or send replays to it. Click a pad to fire it into the call; search filters instantly; per-sound volume; overlap or interrupt mode.
-- 🚀 **Quick launcher** — press `Ctrl+Alt+Q` in any game, type two letters, hit Enter — the sound plays into your call. No window, no mouse.
-- ⌨️ **Soundboard hotkeys** — bind sounds to `Ctrl+Alt+1`–`9` and fire them from anywhere. `Ctrl+Alt+0` stops.
-- 🏷️ **Labels** — give replays friendly names ("bruh sound #2") without touching the file name, or rename the file too.
-- 📊 **Live UI** — level meter, buffer waveform, recent replays with durations. Closes to the system tray; capture keeps running.
-- 🚀 **Lightweight** — ~0% CPU and ~70 MB RAM while idle (5-minute buffer). Starts with Windows (optional), hidden in the tray.
+**Soundboard**
+- Pad grid with its own library — **drag & drop MP3/WAV files** to import, or promote replays with one click
+- **Categories** (chips above the grid, folder-backed) — drag pads onto chips to move sounds, Ctrl+drag to copy, drop Explorer files on a chip to import straight into it
+- Per-sound **volume** (10–300%), **pad colors**, **pin to top**, labels independent of file names
+- **Global hotkeys**: bind sounds to `Ctrl+Alt+1`–`9`, stop everything with `Ctrl+Alt+0` or the **Stop all** button
+- **Quick launcher** — `Ctrl+Alt+Q` anywhere (even mid-game): type two letters, Enter, the sound plays into your call
+- **Overlap or interrupt** mode: layer sounds over each other, or let each new sound cut the previous one
+
+**Replay buffer**
+- Rolling in-RAM buffer (1–30 min): nothing written to disk until you save; `Ctrl+Alt+S` saves everything, `Ctrl+Alt+D` the last 30 s (all configurable)
+- Capture the **whole desktop**, **one specific app** (just the game, just Discord), everything **except** one app, or the **microphone** — with live level meter and waveform
+- Explicit **Start/Stop** control; always launches recording
+- Recent replays list with durations: play to mic, edit, rename, delete (to Recycle Bin)
+
+**Editor**
+- Two **range handles** under the waveform — saving exports exactly the enclosed range, so trimming is drag → Save as copy
+- Cut sections, fade in/out, volume, normalize, undo; preview with a live playhead
+- Safe overwrite (encodes to a temp file first — a failed save can never destroy the original)
+
+**App**
+- Dark UI with an icon rail switching between full-window Soundboard and Replay modes
+- Closes to the system tray and keeps recording; optional start with Windows (hidden)
+- Settings live in `%AppData%\AudioReplayBuffer` and **survive updates**; built-in **update checker**
+- Crash-resilient: unexpected errors are logged (`log.txt`) and the app keeps recording
 
 ## Requirements
 
-- **Windows 10 (version 2004+) or Windows 11** — per-app capture needs 2004+; everything else works on any Windows 10.
-- **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (or build self-contained, see below).
-- **For "Play to mic":** a virtual audio cable — [VB-CABLE](https://vb-audio.com/Cable/) (free) or [Voicemod](https://www.voicemod.net/). Not needed for recording.
-- MP3 encoding uses Windows' built-in Media Foundation — no extra codecs needed. (If present, [ffmpeg](https://ffmpeg.org/) is used as an automatic fallback.)
+- **Windows 10 (version 2004+) or Windows 11** (per-app capture needs 2004+)
+- **For "play into the call":** a virtual audio cable — [VB-CABLE](https://vb-audio.com/Cable/) (free) or [Voicemod](https://www.voicemod.net/). Not needed for recording or local playback.
+- MP3 encoding uses Windows' built-in Media Foundation; [ffmpeg](https://ffmpeg.org/) is an automatic fallback if present.
+- The installer and portable zip are **self-contained** — no .NET installation needed. Building from source needs the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ## Installation
 
-**Easiest — the installer:** download `AudioReplayBuffer-Setup-x.x.x.exe` from the **[Releases page](https://github.com/TareqAli-CS/AudioReplayBuffer/releases)** and run it. No .NET installation needed, no admin rights needed — it installs per-user with a Start Menu shortcut and a clean uninstaller. A **portable zip** (unzip & run) is also available there.
+**Easiest:** download **`AudioReplayBuffer-Setup-x.x.x.exe`** from the **[Releases page](https://github.com/TareqAli-CS/AudioReplayBuffer/releases)** and run it — per-user install, no admin rights, Start Menu shortcut, clean uninstaller. A **portable zip** (unzip & run) is also there. The app checks for new releases on startup and via tray → *Check for updates*.
 
-> **Note:** Windows SmartScreen may warn about an unsigned exe the first time — click *More info → Run anyway*.
+> Windows SmartScreen may warn about the unsigned exe — click *More info → Run anyway*.
 
-**Or build from source:**
+**From source:**
 
 ```powershell
 git clone https://github.com/TareqAli-CS/AudioReplayBuffer.git
 cd AudioReplayBuffer
-
-# Framework-dependent build (needs the .NET 10 Desktop Runtime installed):
-dotnet publish AudioReplayBuffer -c Release -o publish
-
-# OR self-contained (bigger, but runs on machines without .NET):
 dotnet publish AudioReplayBuffer -c Release -r win-x64 --self-contained true -o publish
+publish\AudioReplayBuffer.exe
 ```
 
-Then run `publish\AudioReplayBuffer.exe`. The installer itself is built from [installer/AudioReplayBuffer.iss](installer/AudioReplayBuffer.iss) with [Inno Setup](https://jrsoftware.org/isinfo.php).
+The installer itself is built from [installer/AudioReplayBuffer.iss](installer/AudioReplayBuffer.iss) with [Inno Setup](https://jrsoftware.org/isinfo.php).
 
 ## Quick Start
 
-1. **Run the app.** It immediately starts buffering desktop audio (the red *Recording* dot and level meter confirm it). The **■ Stop / ▶ Start** button halts and resumes buffering; every launch always starts in the recording state.
-2. **Press `Ctrl+Alt+S`** anytime — the last 5 minutes land in `Music\Replays` as an MP3. **`Ctrl+Alt+D`** saves just the last 30 seconds.
-3. **Double-click a replay** in the list to play it into your call, or right-click for more (edit, rename, show in Explorer, delete).
-4. Open **⚙ Settings** to change what's captured, buffer length, hotkeys, MP3 quality and output folder. Changes apply instantly.
-5. Enable **Start with Windows** in Settings and forget it's there.
+1. **Run the app** — it opens on the soundboard and immediately starts buffering desktop audio (red dot in the rail = recording).
+2. **Set up the call output once:** ⚙ Settings → *Play to mic* → pick your virtual cable device (see below).
+3. **Add sounds:** drag MP3/WAV files onto the board, or clip a live moment with `Ctrl+Alt+D` and use *Send to soundboard*.
+4. **Click a pad** — your friends hear it. `Ctrl+Alt+Q` mid-game does the same without leaving your game.
 
-## Setting Up "Play to Mic" (Soundboard)
+## Connecting It to Discord (or any call app)
 
-Windows doesn't let apps inject audio into a physical microphone — every soundboard works through a **virtual audio device**:
+Windows doesn't let apps inject audio into a physical microphone, so every soundboard works through a **virtual audio device**:
 
-1. Install [VB-CABLE](https://vb-audio.com/Cable/) (or use Voicemod's virtual device if you have it).
-2. In **⚙ Settings → Play to mic**, pick the cable's *playback* device (e.g. `CABLE Input (VB-Audio Virtual Cable)` or `Line (Voicemod Virtual Audio Device)`).
-3. In Discord (or any call app), set the **input device** to the cable's *microphone* side (e.g. `CABLE Output`). Voicemod users: keep Discord on the Voicemod mic — Voicemod mixes your voice and the replay together automatically.
-4. Select a replay and hit **Play to mic** (or just double-click it). Adjust the volume with the slider — it works live.
+1. Install [VB-CABLE](https://vb-audio.com/Cable/), or use Voicemod's virtual device if you have it.
+2. In **⚙ Settings → Play to mic**, pick the cable's *playback* side (e.g. `CABLE Input (VB-Audio Virtual Cable)` or `Line (Voicemod Virtual Audio Device)`).
+3. In Discord, set the **input device** to the cable's *microphone* side (e.g. `CABLE Output`). **Voicemod users:** keep Discord on the Voicemod mic — your voice and the sounds get mixed automatically.
 
-**The Soundboard is the main view** — the app opens on a full-window pad grid with its own library (kept in a `Soundboard` subfolder of your output folder). The **icon rail on the left** switches between the two modes: 🎛 soundboard and 🎙 replay recorder (status, save buttons, history); the dot at the bottom of the rail always shows the recording state, and ⚙ opens Settings from anywhere. Add sounds by dragging MP3/WAV files onto it, with the **＋ Add sounds** button, or right-click a replay → *Send to soundboard*. Organize sounds into **categories** (chips above the grid — ＋ Category creates one; each category is simply a subfolder of the library, and imports land in whichever category is selected). Move sounds between categories by **dragging a pad onto a category chip** (hold **Ctrl** to copy instead), with right-click → *Move / copy to category…*, or from the Rename dialog. Dropping files from Explorer onto a chip imports them straight into that category. Click a pad to fire it into the call (click again to stop it); right-click a pad to edit the sound in the built-in editor, rename it, set per-sound volume, assign a hotkey, or delete it. The search box filters as you type. In Settings you can choose whether sounds **overlap** or cut each other off.
+**Hearing an echo?** Untick *"Hear it too"* — the echo is the sound playing on your speakers and being picked up again by your real mic (or doubled by Voicemod's own monitoring).
 
-**Quick launcher:** press `Ctrl+Alt+Q` (configurable) anywhere — even mid-game — type a few letters of a sound's name, press Enter, and it plays into your call.
+## Using the Soundboard
 
-**Soundboard hotkeys:** in any sound's **Rename** dialog, pick a slot. Now `Ctrl+Alt+<slot>` plays it from anywhere. `Ctrl+Alt+0` stops playback.
+- **Play:** click a pad (green border = playing; click again stops it). *Stop all* or `Ctrl+Alt+0` silences everything instantly.
+- **Organize:** ＋ Category creates a category (a subfolder of the library — everything stays visible in Explorer). Drag pads onto chips to move sounds (**Ctrl+drag copies**), or right-click → *Move / copy to category…*.
+- **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, and `Ctrl+Alt+1..9` hotkey slot. *Pin / unpin* keeps favorites at the top.
+- **Edit:** right-click → *Edit sound…* opens the full editor; saved copies appear on the board immediately.
+- **Find:** the search box filters pads as you type; `Ctrl+Alt+Q` opens the global launcher with the same search.
 
-**Hearing an echo?** Untick *"Hear it too"* next to the volume slider — echo comes from the sound playing on your speakers and being picked up again by your real mic (or doubled by Voicemod's own monitoring).
+## The Replay Buffer
 
-## Editing a Replay
+Switch to 🎙 in the rail for the recorder: live level meter, buffer fill, waveform of the buffered audio, **■ Stop / ▶ Start** control, and the recent replays list (double-click a replay to fire it into the call, right-click for everything else). The buffer keeps only the last N minutes in RAM and writes nothing until you save — silence stays accurate, device switches (plugging in headphones) are handled, and the app always launches recording.
 
-Select a replay → **Edit** (or run `AudioReplayBuffer.exe --edit "file.mp3"`):
-
-- Drag the **two range handles** under the waveform around the part you want — **saving exports exactly that range**, so trimming is just: drag handles → *Save as copy*.
-- *Play selection* previews the range before saving.
-- Extra tools: delete a section, fade in/out, volume, normalize — all with undo.
-- *Overwrite original* encodes to a temp file first, so a failed save can never destroy your recording.
+**Capture sources** (⚙ Settings → Capture): entire desktop, microphone only, both mixed — or a **single app** picked from the apps currently playing audio (also invertible: everything *except* that app). Per-app capture means your music never ends up in the clip.
 
 ## Default Hotkeys
 
 | Hotkey | Action |
 |---|---|
-| `Ctrl+Alt+S` | Save the whole buffer |
+| `Ctrl+Alt+S` | Save the whole buffer as MP3 |
 | `Ctrl+Alt+D` | Save the last 30 seconds |
 | `Ctrl+Alt+1`–`9` | Play soundboard slot into the call |
-| `Ctrl+Alt+0` | Stop soundboard playback |
-| `Ctrl+Alt+Q` | Open the quick launcher (search & play any sound) |
+| `Ctrl+Alt+0` | Stop all soundboard playback |
+| `Ctrl+Alt+Q` | Quick launcher (search & play any sound) |
 
-The save hotkeys and clip length are configurable in Settings.
+All configurable in ⚙ Settings.
 
 ## Configuration
 
-Everything lives in `appsettings.json` in `%AppData%\AudioReplayBuffer` (editable from the Settings window — restart not required). Settings survive app updates and reinstalls:
+Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioReplayBuffer\appsettings.json` (labels, hotkey slots, colors, and pins live in `soundboard.json` next to it — everything survives updates):
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `CaptureMode` | `Desktop` | `Desktop`, `Microphone`, or `Both` |
-| `TargetApp` / `TargetAppExclude` | `""` / `false` | Capture only this app — or everything except it |
-| `BufferMinutes` | `5` | Buffer length (≈11 MB RAM per minute) |
-| `Bitrate` | `192` | MP3 quality in kbps |
-| `Hotkey` / `ClipHotkey` / `ClipSeconds` | `Ctrl+Alt+S` / `Ctrl+Alt+D` / `30` | Save hotkeys |
-| `OutputFolder` | `Music\Replays` | Where MP3s go |
-| `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — | Play-to-mic device, volume, self-monitor |
-| `SoundboardOverlap` / `LauncherHotkey` | `false` / `Ctrl+Alt+Q` | Overlap vs interrupt; quick-launcher hotkey |
-| `DesktopGain` / `MicrophoneGain` | `1.0` | Per-source capture volume |
-
-Labels and soundboard slots are stored in `soundboard.json` in the same folder.
+| `CaptureMode` / `TargetApp` / `TargetAppExclude` | `Desktop` / — / `false` | What the buffer records |
+| `BufferMinutes` / `Bitrate` | `5` / `192` | Buffer length (≈11 MB RAM per minute) and MP3 quality |
+| `Hotkey` / `ClipHotkey` / `ClipSeconds` / `LauncherHotkey` | see table above | Hotkeys |
+| `OutputFolder` | `Music\Replays` | Replays folder; the soundboard library is its `Soundboard` subfolder |
+| `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — / `100` / `true` | Call output device, master volume, self-monitor |
+| `SoundboardOverlap` | `false` | Sounds layer over each other instead of cutting |
+| `DesktopGain` / `MicrophoneGain` | `1.0` | Capture volume per source |
 
 ## Troubleshooting
 
-- **"Hotkey is already in use"** — another app owns that combo; pick a different one in Settings.
-- **Per-app capture says the app is not running** — start the target app first, or switch back to *All apps*. Requires Windows 10 2004+.
-- **No sound in your call from Play to mic** — double-check step 3 above: the call app must use the *cable's microphone* as its input.
-- **Nothing captured while the PC was silent** — that's by design; silence is recorded as silence, and the buffer timeline stays accurate.
-- Errors are logged to `log.txt` in `%AppData%\AudioReplayBuffer`. Unexpected errors won't kill the app — it logs them and keeps recording.
+- **"Hotkey is already in use"** — another app owns that combo; change it in Settings.
+- **Friends can't hear sounds** — Discord's input must be the *cable's microphone* side (step 3 above).
+- **Per-app capture says the app is not running** — start the target app first, or switch back to *All apps*.
+- **Echo in the call** — untick *"Hear it too"*, or use headphones.
+- Errors are logged to `%AppData%\AudioReplayBuffer\log.txt`; unexpected errors won't kill the app.
 
 ## Tech Notes
 
-C# / .NET 10, WPF (dark UI, custom-drawn waveforms), [NAudio](https://github.com/naudio/NAudio) for WASAPI capture/playback and Media Foundation encoding. Per-app capture is a hand-written COM interop of the Windows process-loopback API (NAudio has no wrapper). Architecture details in [Architecture.md](Architecture.md); [project.md](project.md) is the original concept document.
+C# / .NET 10, WPF (dark UI, custom-drawn waveforms), [NAudio](https://github.com/naudio/NAudio) for WASAPI capture/playback and Media Foundation encoding. Per-app capture is a hand-written COM interop of the Windows process-loopback API. Design details in [Architecture.md](Architecture.md); [project.md](project.md) is the original concept document.
 
 ## License
 

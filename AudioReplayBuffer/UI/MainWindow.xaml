@@ -171,6 +171,9 @@
                 <Grid Grid.Row="0" Margin="2,0,2,10">
                     <TextBlock Text="Soundboard" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource Btn}" Content="■ Stop all" Padding="10,4" FontSize="11"
+                                Margin="0,0,12,0" Click="OnStopAllClick"
+                                ToolTip="Immediately stop every sound playing into the call"/>
                         <CheckBox x:Name="MirrorCheck" Content="Hear it too" FontSize="11"
                                   VerticalAlignment="Center" Margin="0,0,10,0"
                                   ToolTip="Also play through your speakers. Causes echo if your real mic can hear your speakers, or if Voicemod's 'Hear myself' is already on — untick to fix."/>
@@ -217,17 +220,26 @@
                                                         <MenuItem Header="Edit sound…" Click="OnPadEditClick"/>
                                                         <MenuItem Header="Rename / hotkey / volume…" Click="OnPadPropertiesClick"/>
                                                         <MenuItem Header="Move / copy to category…" Click="OnPadMoveClick"/>
+                                                        <MenuItem Header="Pin / unpin (show first)" Click="OnPadPinClick"/>
                                                         <MenuItem Header="Show in Explorer" Click="OnPadExplorerClick"/>
                                                         <Separator/>
                                                         <MenuItem Header="Delete" Click="OnPadDeleteClick"/>
                                                     </ContextMenu>
                                                 </Button.ContextMenu>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap"
-                                                               MaxHeight="34" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Sub}" FontSize="10"
-                                                               Foreground="{StaticResource DimBrush}" Margin="0,4,0,0"/>
-                                                </StackPanel>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Width="4" CornerRadius="2"
+                                                            Background="{Binding Color}" Margin="0,1,7,1"/>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap"
+                                                                   MaxHeight="34" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Sub}" FontSize="10"
+                                                                   Foreground="{StaticResource DimBrush}" Margin="0,4,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

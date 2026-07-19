@@ -16,6 +16,8 @@ public sealed class SoundboardStore
         public Dictionary<string, string> Labels { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<int, string> Slots { get; set; } = [];
         public Dictionary<string, int> Volumes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> Colors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<string> Pinned { get; set; } = [];
     }
 
     private static string StorePath => AppPaths.SoundboardPath;
@@ -73,6 +75,30 @@ public sealed class SoundboardStore
         Save();
     }
 
+    /// <summary>Pad accent color as "#RRGGBB", or null for none.</summary>
+    public string? GetColor(string path)
+        => _data.Colors.TryGetValue(path, out var color) ? color : null;
+
+    public void SetColor(string path, string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+            _data.Colors.Remove(path);
+        else
+            _data.Colors[path] = color;
+        Save();
+    }
+
+    public bool IsPinned(string path)
+        => _data.Pinned.Contains(path, StringComparer.OrdinalIgnoreCase);
+
+    public void SetPinned(string path, bool pinned)
+    {
+        _data.Pinned.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        if (pinned)
+            _data.Pinned.Add(path);
+        Save();
+    }
+
     public int? SlotOf(string path)
     {
         foreach (var (slot, slotPath) in _data.Slots)
@@ -103,6 +129,10 @@ public sealed class SoundboardStore
             _data.Labels[newPath] = label;
         if (_data.Volumes.Remove(oldPath, out int volume))
             _data.Volumes[newPath] = volume;
+        if (_data.Colors.Remove(oldPath, out var color))
+            _data.Colors[newPath] = color;
+        if (_data.Pinned.RemoveAll(p => string.Equals(p, oldPath, StringComparison.OrdinalIgnoreCase)) > 0)
+            _data.Pinned.Add(newPath);
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, oldPath, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots[slot] = newPath;
@@ -113,6 +143,8 @@ public sealed class SoundboardStore
     {
         _data.Labels.Remove(path);
         _data.Volumes.Remove(path);
+        _data.Colors.Remove(path);
+        _data.Pinned.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, path, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots.Remove(slot);

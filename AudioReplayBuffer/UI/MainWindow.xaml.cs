@@ -26,7 +26,8 @@ public partial class MainWindow : Window
 
     private sealed record RecentItem(string Name, string Details, string FullPath);
 
-    private sealed record SoundPad(string Title, string Sub, string FullPath, bool IsPlaying);
+    private sealed record SoundPad(string Title, string Sub, string FullPath, bool IsPlaying,
+                                   Brush? Color, bool Pinned);
 
     /// <summary>Selected category chip; null = All.</summary>
     private string? _selectedCategory;
@@ -342,7 +343,8 @@ public partial class MainWindow : Window
             store.PathOfSlot,
             store.GetVolume(path),
             isLibrarySound ? GetCategories() : null,
-            currentCategory)
+            currentCategory,
+            store.GetColor(path))
         { Owner = this };
         dialog.ShowDialog();
         if (!dialog.Saved)
@@ -377,6 +379,7 @@ public partial class MainWindow : Window
             store.SetLabel(path, dialog.LabelResult);
             store.AssignSlot(dialog.SlotResult, path);
             store.SetVolume(path, dialog.VolumeResult);
+            store.SetColor(path, dialog.ColorResult);
             string warning = _controller.RegisterHotkey();
             RefreshRecentList();
             RefreshSoundboard();
@@ -695,7 +698,8 @@ public partial class MainWindow : Window
                     .Select(f =>
                     {
                         string? label = store.GetLabel(f.FullName);
-                        string title = label ?? Path.GetFileNameWithoutExtension(f.Name);
+                        bool pinned = store.IsPinned(f.FullName);
+                        string title = (pinned ? "📌 " : "") + (label ?? Path.GetFileNameWithoutExtension(f.Name));
                         int? slot = store.SlotOf(f.FullName);
                         TimeSpan? duration = GetDuration(f);
                         string sub = duration is TimeSpan d ? AppController.Fmt(d) : "";
@@ -711,12 +715,14 @@ public partial class MainWindow : Window
                             parent.Length > 0)
                             sub += $"  · {parent}";
                         return new SoundPad(title, sub.Trim(), f.FullName,
-                            _voicePlayer.IsPlayingPath(f.FullName));
+                            _voicePlayer.IsPlayingPath(f.FullName),
+                            ParsePadColor(store.GetColor(f.FullName)), pinned);
                     })
                     .Where(p => query.Length == 0 ||
                                 p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                                 Path.GetFileName(p.FullPath).Contains(query, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
+                    .OrderByDescending(p => p.Pinned)
+                    .ThenBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
         }
@@ -729,8 +735,40 @@ public partial class MainWindow : Window
         NoPadsText.Visibility = pads.Count == 0 && query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private static Brush? ParsePadColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex))
+            return null;
+        try
+        {
+            var brush = (Brush?)new BrushConverter().ConvertFromString(hex);
+            brush?.Freeze();
+            return brush;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void OnPadSearchChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         => RefreshSoundboard();
+
+    private void OnStopAllClick(object sender, RoutedEventArgs e)
+    {
+        _voicePlayer.Stop();
+        MicPlayBtn.Content = "Play to mic";
+        RefreshSoundboard();
+    }
+
+    private void OnPadPinClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is not SoundPad pad)
+            return;
+        var store = _controller.Soundboard;
+        store.SetPinned(pad.FullPath, !store.IsPinned(pad.FullPath));
+        RefreshSoundboard();
+    }
 
     private void OnPadClick(object sender, RoutedEventArgs e)
     {

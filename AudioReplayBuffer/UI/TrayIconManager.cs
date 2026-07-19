@@ -42,6 +42,7 @@ public sealed class TrayIconManager : IDisposable
         menu.Items.Add(new WF.ToolStripSeparator());
         menu.Items.Add(_pauseItem);
         menu.Items.Add(_autoStartItem);
+        menu.Items.Add(new WF.ToolStripMenuItem("Check for updates", null, (_, _) => CheckForUpdates()));
         menu.Items.Add(new WF.ToolStripSeparator());
         menu.Items.Add(new WF.ToolStripMenuItem("Exit", null, (_, _) => exitApp()));
 
@@ -70,6 +71,49 @@ public sealed class TrayIconManager : IDisposable
 
     public void ShowWarning(string title, string message)
         => _icon.ShowBalloonTip(4000, title, message, WF.ToolTipIcon.Warning);
+
+    private bool _lastBalloonWasUpdate;
+
+    /// <summary>Balloon pointing at the releases page; clicking it opens the page.</summary>
+    public void NotifyUpdateAvailable(string tag)
+    {
+        _lastBalloonWasUpdate = true;
+        _icon.BalloonTipClicked -= OnUpdateBalloonClicked;
+        _icon.BalloonTipClicked += OnUpdateBalloonClicked;
+        _icon.ShowBalloonTip(6000, "Update available",
+            $"Audio Replay Buffer {tag} is out — click here to download.", WF.ToolTipIcon.Info);
+    }
+
+    private void OnUpdateBalloonClicked(object? sender, EventArgs e)
+    {
+        if (!_lastBalloonWasUpdate)
+            return;
+        _lastBalloonWasUpdate = false;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(UpdateChecker.ReleasesPage)
+        {
+            UseShellExecute = true
+        });
+    }
+
+    private async void CheckForUpdates()
+    {
+        var result = await UpdateChecker.CheckAsync();
+        if (result == null)
+        {
+            _icon.ShowBalloonTip(4000, "Update check failed",
+                "Could not reach GitHub — check your internet connection.", WF.ToolTipIcon.Warning);
+        }
+        else if (result.Value.IsNewer)
+        {
+            NotifyUpdateAvailable(result.Value.LatestTag);
+        }
+        else
+        {
+            _lastBalloonWasUpdate = false;
+            _icon.ShowBalloonTip(3000, "Up to date",
+                $"You are on the latest version (v{UpdateChecker.CurrentVersion}).", WF.ToolTipIcon.Info);
+        }
+    }
 
     private static void OnUiThread(Action action)
         => System.Windows.Application.Current?.Dispatcher.BeginInvoke(action);
