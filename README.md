@@ -28,7 +28,13 @@ Someone said something hilarious on Discord? Clutch game moment? Press **Ctrl+Al
 - **For "Play to mic":** a virtual audio cable — [VB-CABLE](https://vb-audio.com/Cable/) (free) or [Voicemod](https://www.voicemod.net/). Not needed for recording.
 - MP3 encoding uses Windows' built-in Media Foundation — no extra codecs needed. (If present, [ffmpeg](https://ffmpeg.org/) is used as an automatic fallback.)
 
-## Download & Build
+## Installation
+
+**Easiest — the installer:** download `AudioReplayBuffer-Setup-x.x.x.exe` from the **[Releases page](https://github.com/TareqAli-CS/AudioReplayBuffer/releases)** and run it. No .NET installation needed, no admin rights needed — it installs per-user with a Start Menu shortcut and a clean uninstaller. A **portable zip** (unzip & run) is also available there.
+
+> **Note:** Windows SmartScreen may warn about an unsigned exe the first time — click *More info → Run anyway*.
+
+**Or build from source:**
 
 ```powershell
 git clone https://github.com/TareqAli-CS/AudioReplayBuffer.git
@@ -41,9 +47,7 @@ dotnet publish AudioReplayBuffer -c Release -o publish
 dotnet publish AudioReplayBuffer -c Release -r win-x64 --self-contained true -o publish
 ```
 
-Then run `publish\AudioReplayBuffer.exe`. A red-dot icon appears in the system tray and the main window opens.
-
-> **Note:** Windows SmartScreen may warn about an unsigned exe the first time — click *More info → Run anyway*.
+Then run `publish\AudioReplayBuffer.exe`. The installer itself is built from [installer/AudioReplayBuffer.iss](installer/AudioReplayBuffer.iss) with [Inno Setup](https://jrsoftware.org/isinfo.php).
 
 ## Quick Start
 

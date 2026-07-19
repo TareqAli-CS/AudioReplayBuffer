@@ -14,3 +14,7 @@ appsettings.json.bak
 
 # Local test artifacts
 TestOutput/
+
+# Release build output
+publish/
+installer/Output/
