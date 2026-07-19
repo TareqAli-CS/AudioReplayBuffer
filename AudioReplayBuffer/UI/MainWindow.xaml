@@ -208,12 +208,15 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Style="{StaticResource PadBtn}" Click="OnPadClick" Tag="{Binding}">
+                                            <Button Style="{StaticResource PadBtn}" Click="OnPadClick" Tag="{Binding}"
+                                                    PreviewMouseLeftButtonDown="OnPadMouseDown"
+                                                    PreviewMouseMove="OnPadMouseMove">
                                                 <Button.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="Play on this PC" Click="OnPadPlayLocalClick"/>
                                                         <MenuItem Header="Edit sound…" Click="OnPadEditClick"/>
                                                         <MenuItem Header="Rename / hotkey / volume…" Click="OnPadPropertiesClick"/>
+                                                        <MenuItem Header="Move / copy to category…" Click="OnPadMoveClick"/>
                                                         <MenuItem Header="Show in Explorer" Click="OnPadExplorerClick"/>
                                                         <Separator/>
                                                         <MenuItem Header="Delete" Click="OnPadDeleteClick"/>

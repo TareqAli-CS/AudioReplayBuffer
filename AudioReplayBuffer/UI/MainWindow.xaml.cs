@@ -31,6 +31,10 @@ public partial class MainWindow : Window
     /// <summary>Selected category chip; null = All.</summary>
     private string? _selectedCategory;
 
+    private const string SoundDragFormat = "AudioReplayBufferSound";
+    private Point _padDragStart;
+    private SoundPad? _padDragCandidate;
+
     public MainWindow(AppController controller)
     {
         _controller = controller;
@@ -512,14 +516,131 @@ public partial class MainWindow : Window
             Padding = new Thickness(10, 4, 10, 4),
             Margin = new Thickness(0, 0, 6, 6),
             Opacity = selected ? 1.0 : 0.5,
-            FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal
+            FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
+            AllowDrop = true,
+            ToolTip = value == null
+                ? "Show all sounds — drop a pad here to move it out of its category"
+                : $"Show only \"{text}\" — drop a pad here to move it in (hold Ctrl to copy), or drop files to import"
         };
         chip.Click += (_, _) =>
         {
             _selectedCategory = value;
             RefreshSoundboard();
         };
+        chip.DragOver += (_, e) => OnChipDragOver(e);
+        chip.Drop += (_, e) => OnChipDrop(value, e);
         CategoryChips.Children.Add(chip);
+    }
+
+    private static void OnChipDragOver(DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(SoundDragFormat))
+            e.Effects = (Keyboard.Modifiers & ModifierKeys.Control) != 0
+                ? DragDropEffects.Copy
+                : DragDropEffects.Move;
+        else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+        else
+            e.Effects = DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnChipDrop(string? category, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (e.Data.GetData(SoundDragFormat) is string soundPath)
+        {
+            bool copy = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+            MoveSoundToCategory(soundPath, category, copy);
+        }
+        else if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+        {
+            ImportSoundsTo(files, category);
+        }
+    }
+
+    // ---- pad dragging (click still works; drag starts after a movement threshold) ----
+
+    private void OnPadMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _padDragCandidate = (sender as FrameworkElement)?.Tag as SoundPad;
+        _padDragStart = e.GetPosition(this);
+    }
+
+    private void OnPadMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_padDragCandidate == null || e.LeftButton != MouseButtonState.Pressed)
+            return;
+        Point position = e.GetPosition(this);
+        if (Math.Abs(position.X - _padDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(position.Y - _padDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        var pad = _padDragCandidate;
+        _padDragCandidate = null;
+        var data = new DataObject(SoundDragFormat, pad.FullPath);
+        DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move | DragDropEffects.Copy);
+    }
+
+    /// <summary>Moves (or copies) a library sound into a category; null = main board.</summary>
+    private void MoveSoundToCategory(string path, string? category, bool copy)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return;
+            string lib = _controller.SoundLibraryDir;
+            string targetDir = category == null ? lib : Path.Combine(lib, category);
+            Directory.CreateDirectory(targetDir);
+
+            bool sameFolder = string.Equals(
+                Path.GetFullPath(Path.GetDirectoryName(path)!),
+                Path.GetFullPath(targetDir), StringComparison.OrdinalIgnoreCase);
+            if (!copy && sameFolder)
+                return;
+
+            var store = _controller.Soundboard;
+            string newPath = ReplaySaver.UniquePath(targetDir, Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+            if (copy)
+            {
+                File.Copy(path, newPath);
+                if (store.GetLabel(path) is string label)
+                    store.SetLabel(newPath, label);
+                int volume = store.GetVolume(path);
+                if (volume != 100)
+                    store.SetVolume(newPath, volume);
+            }
+            else
+            {
+                _voicePlayer.StopPath(path);
+                File.Move(path, newPath);
+                store.RenameFile(path, newPath);
+            }
+            RefreshSoundboard();
+            ShowSaveStatus(
+                $"{Path.GetFileName(newPath)} {(copy ? "copied" : "moved")} to {category ?? "the main board"}.",
+                ok: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Move/copy sound failed: " + ex);
+            ShowSaveStatus(ex.Message, ok: false);
+        }
+    }
+
+    private void OnPadMoveClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is not SoundPad pad || !File.Exists(pad.FullPath))
+            return;
+        string lib = _controller.SoundLibraryDir;
+        string parent = Path.GetDirectoryName(pad.FullPath)!;
+        string? current = string.Equals(Path.GetFullPath(parent), Path.GetFullPath(lib), StringComparison.OrdinalIgnoreCase)
+            ? null
+            : Path.GetFileName(parent);
+        var picker = new CategoryPickerDialog(GetCategories(), current) { Owner = this };
+        picker.ShowDialog();
+        if (picker.Confirmed)
+            MoveSoundToCategory(pad.FullPath, picker.Category, picker.IsCopy);
     }
 
     private void OnNewCategoryClick(object sender, RoutedEventArgs e)
@@ -697,14 +818,16 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Copies audio files into the library — into the selected category, if one is active.</summary>
-    private void ImportSounds(IEnumerable<string> files)
+    private void ImportSounds(IEnumerable<string> files) => ImportSoundsTo(files, _selectedCategory);
+
+    private void ImportSoundsTo(IEnumerable<string> files, string? category)
     {
         int imported = 0;
         try
         {
-            string dir = _selectedCategory == null
+            string dir = category == null
                 ? _controller.SoundLibraryDir
-                : Path.Combine(_controller.SoundLibraryDir, _selectedCategory);
+                : Path.Combine(_controller.SoundLibraryDir, category);
             Directory.CreateDirectory(dir);
             foreach (string file in files)
             {
