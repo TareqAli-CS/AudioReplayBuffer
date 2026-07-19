@@ -31,7 +31,7 @@ Someone said something hilarious on Discord? Clutch game moment? Press **Ctrl+Al
 ## Download & Build
 
 ```powershell
-git clone https://github.com/<your-username>/AudioReplayBuffer.git
+git clone https://github.com/TareqAli-CS/AudioReplayBuffer.git
 cd AudioReplayBuffer
 
 # Framework-dependent build (needs the .NET 10 Desktop Runtime installed):
