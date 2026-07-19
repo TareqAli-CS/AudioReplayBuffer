@@ -90,6 +90,10 @@ public partial class MainWindow : Window
         StatusDot.Fill = (Brush)FindResource(running ? "AccentBrush" : "DimBrush");
         StatusText.Text = running ? "Recording" : "Stopped";
         PauseBtn.Content = running ? "■ Stop" : "▶ Start";
+        RailDot.Fill = StatusDot.Fill;
+        RailDot.ToolTip = running
+            ? $"Recording — {AppController.Fmt(_controller.BufferedDuration)} buffered"
+            : "Stopped — press Start in the Replays view";
 
         double peak = running ? _controller.CurrentPeak * 100 : 0;
         _displayedLevel = Math.Max(peak, _displayedLevel * 0.85);
@@ -401,31 +405,31 @@ public partial class MainWindow : Window
 
     private void OnReplaysTabClick(object sender, RoutedEventArgs e)
     {
-        RecentCard.Visibility = Visibility.Visible;
-        SoundboardCard.Visibility = Visibility.Collapsed;
+        ReplayView.Visibility = Visibility.Visible;
+        SoundboardView.Visibility = Visibility.Collapsed;
         UpdateTabVisuals();
         RefreshRecentList();
     }
 
     private void OnSoundboardTabClick(object sender, RoutedEventArgs e)
     {
-        RecentCard.Visibility = Visibility.Collapsed;
-        SoundboardCard.Visibility = Visibility.Visible;
+        ReplayView.Visibility = Visibility.Collapsed;
+        SoundboardView.Visibility = Visibility.Visible;
         UpdateTabVisuals();
         RefreshSoundboard();
     }
 
     private void UpdateTabVisuals()
     {
-        bool soundboard = SoundboardCard.Visibility == Visibility.Visible;
-        ReplaysTabBtn.Opacity = soundboard ? 0.55 : 1.0;
-        SoundboardTabBtn.Opacity = soundboard ? 1.0 : 0.55;
+        bool soundboard = SoundboardView.Visibility == Visibility.Visible;
+        ReplaysTabBtn.Opacity = soundboard ? 0.45 : 1.0;
+        SoundboardTabBtn.Opacity = soundboard ? 1.0 : 0.45;
     }
 
     /// <summary>Rebuilds the pad grid from the soundboard library folder.</summary>
     private void RefreshSoundboard()
     {
-        if (SoundboardCard.Visibility != Visibility.Visible)
+        if (SoundboardView.Visibility != Visibility.Visible)
             return;
 
         var store = _controller.Soundboard;
