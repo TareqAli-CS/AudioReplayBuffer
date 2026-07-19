@@ -143,6 +143,7 @@ Settings changed in the window apply live: the capture engine is rebuilt in plac
 | MF encoder fails | ffmpeg fallback, then WAV — audio is never dropped |
 | Save pressed while encoding | Ignored (no queue) |
 | Config invalid | Error dialog at startup, app exits |
+| Unhandled UI exception | Logged to log.txt + tray warning; the app keeps recording |
 | Second instance launched | Info dialog, exits (single-instance mutex) |
 | Any unexpected error | Logged to `log.txt` next to the exe; capture keeps running |
 
