@@ -17,7 +17,7 @@ public sealed class SoundboardStore
         public Dictionary<int, string> Slots { get; set; } = [];
     }
 
-    private static readonly string StorePath = Path.Combine(AppContext.BaseDirectory, "soundboard.json");
+    private static string StorePath => AppPaths.SoundboardPath;
     private readonly StoreData _data;
 
     public SoundboardStore()

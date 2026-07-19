@@ -82,7 +82,7 @@ public sealed class AppSettings
 
     public static AppSettings Load()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        string path = Core.AppPaths.SettingsPath;
         if (!File.Exists(path))
             File.WriteAllText(path, DefaultJson);
 
@@ -100,8 +100,8 @@ public sealed class AppSettings
 
     public void Save()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(Core.AppPaths.SettingsPath,
+            JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public void Validate()

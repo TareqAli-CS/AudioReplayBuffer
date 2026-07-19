@@ -64,6 +64,7 @@ All under [AudioReplayBuffer/](AudioReplayBuffer/):
 |---|---|---|
 | `App` | App.xaml(.cs) | Single-instance mutex, config load, Media Foundation init, wires controller + window + tray |
 | `AppController` | Core/AppController.cs | The brain shared by window and tray: owns ring/engine/saver/hotkey, save + live settings-apply logic, events |
+| `AppPaths` | Core/AppPaths.cs | User data location: %AppData%\AudioReplayBuffer (settings, soundboard, log) so installer updates can't wipe it; one-time migration from the legacy exe-directory location |
 | `AppSettings` | Configuration/AppSettings.cs | Load/validate/save `appsettings.json`; writes a commented default if missing |
 | `AudioCaptureEngine` | Core/AudioCaptureEngine.cs | WASAPI captures, format conversion, mixing, ring-buffer feed, device-change recovery, peak level for the UI meter |
 | `CircularAudioBuffer` | Core/CircularAudioBuffer.cs | Thread-safe PCM ring buffer; `Snapshot()` returns chronological copy |

@@ -16,6 +16,8 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        AppPaths.EnsureAndMigrate();
+        InstallCrashHandlers();
 
         _mutex = new Mutex(initiallyOwned: true, "AudioReplayBuffer_SingleInstance", out bool isFirstInstance);
         if (!isFirstInstance)
@@ -78,6 +80,30 @@ public partial class App : Application
 
         if (!e.Args.Contains("--minimized"))
             ShowMainWindow();
+    }
+
+    /// <summary>
+    /// A background recorder must not vanish because one operation threw.
+    /// UI-thread exceptions are logged and swallowed so capture keeps
+    /// running; non-recoverable ones are at least logged before the
+    /// process dies.
+    /// </summary>
+    private void InstallCrashHandlers()
+    {
+        DispatcherUnhandledException += (_, args) =>
+        {
+            Logger.Log("Unhandled UI exception (app kept running): " + args.Exception);
+            _tray?.ShowWarning("Unexpected error",
+                "Something went wrong but the app is still recording. Details are in log.txt.");
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            Logger.Log("Fatal unhandled exception: " + args.ExceptionObject);
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Logger.Log("Unobserved task exception (ignored): " + args.Exception);
+            args.SetObserved();
+        };
     }
 
     private void ShowMainWindow()

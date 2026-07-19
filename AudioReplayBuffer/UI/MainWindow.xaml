@@ -30,8 +30,9 @@
                         <Button x:Name="ClearBtn" Style="{StaticResource Btn}" Content="Clear" Padding="10,6"
                                 FontSize="12" Margin="8,0,0,0" Click="OnClearClick"
                                 ToolTip="Discard the audio captured so far (saved files are not affected)"/>
-                        <Button x:Name="PauseBtn" Style="{StaticResource Btn}" Content="Pause" Padding="10,6"
-                                FontSize="12" Margin="8,0,0,0" Click="OnPauseClick"/>
+                        <Button x:Name="PauseBtn" Style="{StaticResource Btn}" Content="■ Stop" Padding="10,6"
+                                FontSize="12" Margin="8,0,0,0" Click="OnPauseClick"
+                                ToolTip="Stop buffering — no audio is captured or stored until you press Start. The app always launches recording."/>
                     </StackPanel>
                 </Grid>
                 <TextBlock x:Name="StatusSub" Style="{StaticResource Dim}" Margin="0,6,0,14"

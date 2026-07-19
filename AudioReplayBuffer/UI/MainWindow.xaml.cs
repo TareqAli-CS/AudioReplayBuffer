@@ -80,8 +80,8 @@ public partial class MainWindow : Window
         bool running = _controller.IsCapturing;
 
         StatusDot.Fill = (Brush)FindResource(running ? "AccentBrush" : "DimBrush");
-        StatusText.Text = running ? "Recording" : "Paused";
-        PauseBtn.Content = running ? "Pause" : "Resume";
+        StatusText.Text = running ? "Recording" : "Stopped";
+        PauseBtn.Content = running ? "■ Stop" : "▶ Start";
 
         double peak = running ? _controller.CurrentPeak * 100 : 0;
         _displayedLevel = Math.Max(peak, _displayedLevel * 0.85);

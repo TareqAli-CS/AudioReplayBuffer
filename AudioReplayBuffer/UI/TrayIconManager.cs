@@ -28,7 +28,7 @@ public sealed class TrayIconManager : IDisposable
         var saveItem = new WF.ToolStripMenuItem("Save replay now", null, (_, _) => _controller.SaveReplay());
         _clipItem = new WF.ToolStripMenuItem("Save last 30 s", null, (_, _) => _controller.SaveClip());
         var clearItem = new WF.ToolStripMenuItem("Clear buffer", null, (_, _) => _controller.ClearBuffer());
-        _pauseItem = new WF.ToolStripMenuItem("Pause capture", null, (_, _) => TogglePause());
+        _pauseItem = new WF.ToolStripMenuItem("Stop recording", null, (_, _) => TogglePause());
         _autoStartItem = new WF.ToolStripMenuItem("Start with Windows", null, (_, _) => ToggleAutoStart())
         {
             Checked = StartupRegistry.IsEnabled()
@@ -77,12 +77,12 @@ public sealed class TrayIconManager : IDisposable
     private void UpdateState()
     {
         bool running = _controller.IsCapturing;
-        _pauseItem.Text = running ? "Pause capture" : "Resume capture";
+        _pauseItem.Text = running ? "Stop recording" : "Start recording";
         _clipItem.Text = $"Save last {_controller.Settings.ClipSeconds} s";
         // NotifyIcon.Text is limited to 63 characters.
         _icon.Text = running
             ? $"Audio Replay Buffer — recording ({_controller.Settings.Hotkey})"
-            : "Audio Replay Buffer — paused";
+            : "Audio Replay Buffer — stopped";
     }
 
     private void TogglePause()
