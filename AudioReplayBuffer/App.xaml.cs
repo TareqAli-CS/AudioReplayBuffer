@@ -62,6 +62,7 @@ public partial class App : Application
 
         _window = new MainWindow(_controller);
         _tray = new TrayIconManager(_controller, ShowMainWindow, ExitApplication);
+        _controller.LauncherRequested += ShowLauncher;
 
         string hotkeyError = _controller.RegisterHotkey();
         if (hotkeyError.Length > 0)
@@ -104,6 +105,22 @@ public partial class App : Application
             Logger.Log("Unobserved task exception (ignored): " + args.Exception);
             args.SetObserved();
         };
+    }
+
+    private LauncherWindow? _launcher;
+
+    private void ShowLauncher()
+    {
+        if (_controller == null)
+            return;
+        if (_launcher is { IsVisible: true })
+        {
+            _launcher.Activate();
+            return;
+        }
+        _launcher = new LauncherWindow(_controller);
+        _launcher.Closed += (_, _) => _launcher = null;
+        _launcher.Show();
     }
 
     private void ShowMainWindow()

@@ -22,6 +22,14 @@
                        VerticalAlignment="Center" Margin="8,0,0,0" Text=".mp3"/>
         </Grid>
 
+        <Grid>
+            <TextBlock Text="Sound volume" Style="{StaticResource Lbl}"/>
+            <TextBlock x:Name="VolumeText" Style="{StaticResource Dim}" FontSize="12"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="100%"/>
+        </Grid>
+        <Slider x:Name="VolumeSlider" Minimum="10" Maximum="300" Value="100" TickFrequency="5"
+                IsSnapToTickEnabled="True" ValueChanged="OnVolumeChanged"/>
+
         <TextBlock Text="Soundboard hotkey" Style="{StaticResource Lbl}"/>
         <ComboBox x:Name="SlotBox"/>
         <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"

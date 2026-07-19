@@ -12,6 +12,7 @@ public sealed class AppController : IDisposable
 {
     private const int MainHotkeyId = 1;
     private const int ClipHotkeyId = 2;
+    private const int LauncherHotkeyId = 3;
     private const int SlotHotkeyBase = 10; // slots 1..9 → ids 11..19
     private const int StopSoundHotkeyId = 20;
 
@@ -37,6 +38,12 @@ public sealed class AppController : IDisposable
     public event Action<string>? SoundboardError;
     public event Action? StateChanged;
 
+    /// <summary>Raised on the UI thread when the quick-launcher hotkey fires.</summary>
+    public event Action? LauncherRequested;
+
+    /// <summary>Folder for imported soundboard sounds, kept apart from the replay history.</summary>
+    public string SoundLibraryDir => Path.Combine(Settings.ResolveOutputFolder(), "Soundboard");
+
     public bool IsCapturing => _engine.IsRunning;
     public bool IsSaving => _saving == 1;
     public TimeSpan BufferedDuration => _ring.BufferedDuration;
@@ -56,6 +63,7 @@ public sealed class AppController : IDisposable
         {
             if (id == MainHotkeyId) SaveReplay();
             else if (id == ClipHotkeyId) SaveClip();
+            else if (id == LauncherHotkeyId) LauncherRequested?.Invoke();
             else if (id == StopSoundHotkeyId) Voice.Stop();
             else if (id > SlotHotkeyBase && id <= SlotHotkeyBase + SoundboardStore.SlotCount)
                 PlaySlot(id - SlotHotkeyBase);
@@ -75,6 +83,8 @@ public sealed class AppController : IDisposable
             errors.Add(mainError);
         if (!_hotkeys.TryRegister(ClipHotkeyId, Settings.ClipHotkey, out string clipError))
             errors.Add(clipError);
+        if (!_hotkeys.TryRegister(LauncherHotkeyId, Settings.LauncherHotkey, out string launcherError))
+            errors.Add(launcherError);
 
         for (int slot = 1; slot <= SoundboardStore.SlotCount; slot++)
         {
@@ -102,32 +112,47 @@ public sealed class AppController : IDisposable
         return string.Join(" ", errors);
     }
 
-    /// <summary>Plays the replay assigned to a soundboard slot into the call.</summary>
+    /// <summary>
+    /// Plays any sound file into the call, honoring the per-sound volume
+    /// and the overlap/interrupt setting. Returns false when playback
+    /// could not start (an error event has been raised).
+    /// </summary>
+    public bool PlaySound(string path)
+    {
+        if (!File.Exists(path))
+        {
+            SoundboardError?.Invoke($"\"{Path.GetFileName(path)}\" no longer exists.");
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(Settings.VoiceDevice))
+        {
+            SoundboardError?.Invoke(
+                "Set the voice output device in Settings first (your Voicemod or VB-CABLE device).");
+            return false;
+        }
+        try
+        {
+            float gain = Soundboard.GetVolume(path) / 100f;
+            Voice.Play(path, Settings.VoiceDevice, Settings.VoiceAlsoSpeakers,
+                       gain, Settings.SoundboardOverlap);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Playback of {path} failed: {ex}");
+            SoundboardError?.Invoke(ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Plays the sound assigned to a soundboard slot into the call.</summary>
     public void PlaySlot(int slot)
     {
         string? path = Soundboard.PathOfSlot(slot);
         if (path == null)
             return;
-        if (!File.Exists(path))
-        {
-            SoundboardError?.Invoke($"Soundboard {slot}: the file no longer exists.");
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(Settings.VoiceDevice))
-        {
-            SoundboardError?.Invoke("Set the voice output device in Settings to use soundboard hotkeys.");
-            return;
-        }
-        try
-        {
-            Voice.Play(path, Settings.VoiceDevice, Settings.VoiceAlsoSpeakers);
+        if (PlaySound(path))
             Logger.Log($"Soundboard {slot} → {Path.GetFileName(path)}");
-        }
-        catch (Exception ex)
-        {
-            Logger.Log($"Soundboard slot {slot} failed: {ex}");
-            SoundboardError?.Invoke(ex.Message);
-        }
     }
 
     public void StartCapture()

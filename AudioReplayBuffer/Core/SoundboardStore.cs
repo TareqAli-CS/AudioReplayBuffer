@@ -15,6 +15,7 @@ public sealed class SoundboardStore
     {
         public Dictionary<string, string> Labels { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<int, string> Slots { get; set; } = [];
+        public Dictionary<string, int> Volumes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     private static string StorePath => AppPaths.SoundboardPath;
@@ -59,6 +60,19 @@ public sealed class SoundboardStore
         Save();
     }
 
+    /// <summary>Per-sound playback volume in percent (100 = unchanged).</summary>
+    public int GetVolume(string path)
+        => _data.Volumes.TryGetValue(path, out int volume) ? volume : 100;
+
+    public void SetVolume(string path, int percent)
+    {
+        if (percent == 100)
+            _data.Volumes.Remove(path);
+        else
+            _data.Volumes[path] = Math.Clamp(percent, 10, 300);
+        Save();
+    }
+
     public int? SlotOf(string path)
     {
         foreach (var (slot, slotPath) in _data.Slots)
@@ -87,6 +101,8 @@ public sealed class SoundboardStore
     {
         if (_data.Labels.Remove(oldPath, out var label))
             _data.Labels[newPath] = label;
+        if (_data.Volumes.Remove(oldPath, out int volume))
+            _data.Volumes[newPath] = volume;
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, oldPath, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots[slot] = newPath;
@@ -96,6 +112,7 @@ public sealed class SoundboardStore
     public void RemoveFile(string path)
     {
         _data.Labels.Remove(path);
+        _data.Volumes.Remove(path);
         foreach (var slot in _data.Slots.Where(kv =>
                      string.Equals(kv.Value, path, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList())
             _data.Slots.Remove(slot);

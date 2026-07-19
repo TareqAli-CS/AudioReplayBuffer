@@ -15,8 +15,10 @@ Someone said something hilarious on Discord? Clutch game moment? Press **Ctrl+Al
 - ⚡ **Two save hotkeys** — `Ctrl+Alt+S` saves the whole buffer, `Ctrl+Alt+D` saves just the last 30 seconds (both configurable).
 - 🎯 **Per-app capture** — record only one app's audio (just the game, just Discord…), or everything *except* one app, using the Windows process-loopback API. Or capture the whole desktop, or the microphone, or both mixed.
 - ✂️ **Built-in editor** — trim with two range handles, cut sections out, fade in/out, adjust volume, normalize, undo — then save as a copy or overwrite.
-- 🎙️ **Play to mic (soundboard)** — play any replay into your call via a virtual audio cable (Voicemod / VB-CABLE). Live volume control, optional self-monitor.
-- ⌨️ **Soundboard hotkeys** — bind replays to `Ctrl+Alt+1`–`9` and fire them into the call from inside any game. `Ctrl+Alt+0` stops.
+- 🎙️ **Play to mic** — play any replay into your call via a virtual audio cable (Voicemod / VB-CABLE). Live volume control, optional self-monitor.
+- 🎛️ **Full soundboard** — a pad grid with its own sound library: drag & drop any MP3/WAV in, or send replays to it. Click a pad to fire it into the call; search filters instantly; per-sound volume; overlap or interrupt mode.
+- 🚀 **Quick launcher** — press `Ctrl+Alt+Q` in any game, type two letters, hit Enter — the sound plays into your call. No window, no mouse.
+- ⌨️ **Soundboard hotkeys** — bind sounds to `Ctrl+Alt+1`–`9` and fire them from anywhere. `Ctrl+Alt+0` stops.
 - 🏷️ **Labels** — give replays friendly names ("bruh sound #2") without touching the file name, or rename the file too.
 - 📊 **Live UI** — level meter, buffer waveform, recent replays with durations. Closes to the system tray; capture keeps running.
 - 🚀 **Lightweight** — ~0% CPU and ~70 MB RAM while idle (5-minute buffer). Starts with Windows (optional), hidden in the tray.
@@ -66,7 +68,11 @@ Windows doesn't let apps inject audio into a physical microphone — every sound
 3. In Discord (or any call app), set the **input device** to the cable's *microphone* side (e.g. `CABLE Output`). Voicemod users: keep Discord on the Voicemod mic — Voicemod mixes your voice and the replay together automatically.
 4. Select a replay and hit **Play to mic** (or just double-click it). Adjust the volume with the slider — it works live.
 
-**Soundboard hotkeys:** select a replay → **Rename** → pick a slot. Now `Ctrl+Alt+<slot>` plays it into the call from anywhere, even mid-game. `Ctrl+Alt+0` stops playback.
+**The Soundboard tab:** switch to **🎛 Soundboard** for a pad grid with its own library (kept in a `Soundboard` subfolder of your output folder). Add sounds by dragging MP3/WAV files onto it, with the **＋ Add sounds** button, or right-click a replay → *Send to soundboard*. Click a pad to fire it into the call (click again to stop it); right-click a pad for rename / per-sound volume / hotkey / delete. The search box filters as you type. In Settings you can choose whether sounds **overlap** or cut each other off.
+
+**Quick launcher:** press `Ctrl+Alt+Q` (configurable) anywhere — even mid-game — type a few letters of a sound's name, press Enter, and it plays into your call.
+
+**Soundboard hotkeys:** in any sound's **Rename** dialog, pick a slot. Now `Ctrl+Alt+<slot>` plays it from anywhere. `Ctrl+Alt+0` stops playback.
 
 **Hearing an echo?** Untick *"Hear it too"* next to the volume slider — echo comes from the sound playing on your speakers and being picked up again by your real mic (or doubled by Voicemod's own monitoring).
 
@@ -87,6 +93,7 @@ Select a replay → **Edit** (or run `AudioReplayBuffer.exe --edit "file.mp3"`):
 | `Ctrl+Alt+D` | Save the last 30 seconds |
 | `Ctrl+Alt+1`–`9` | Play soundboard slot into the call |
 | `Ctrl+Alt+0` | Stop soundboard playback |
+| `Ctrl+Alt+Q` | Open the quick launcher (search & play any sound) |
 
 The save hotkeys and clip length are configurable in Settings.
 
@@ -103,6 +110,7 @@ Everything lives in `appsettings.json` in `%AppData%\AudioReplayBuffer` (editabl
 | `Hotkey` / `ClipHotkey` / `ClipSeconds` | `Ctrl+Alt+S` / `Ctrl+Alt+D` / `30` | Save hotkeys |
 | `OutputFolder` | `Music\Replays` | Where MP3s go |
 | `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — | Play-to-mic device, volume, self-monitor |
+| `SoundboardOverlap` / `LauncherHotkey` | `false` / `Ctrl+Alt+Q` | Overlap vs interrupt; quick-launcher hotkey |
 | `DesktopGain` / `MicrophoneGain` | `1.0` | Per-source capture volume |
 
 Labels and soundboard slots are stored in `soundboard.json` in the same folder.

@@ -1,4 +1,4 @@
-<Window x:Class="AudioReplayBuffer.UI.SettingsWindow"
+﻿<Window x:Class="AudioReplayBuffer.UI.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Settings — Audio Replay Buffer"
@@ -110,6 +110,9 @@
                                     TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
                                     ValueChanged="OnClipSecondsChanged"/>
                         </Grid>
+
+                        <TextBlock Text="Quick launcher (search any sound mid-game)" Style="{StaticResource Lbl}"/>
+                        <TextBox x:Name="LauncherHotkeyBox" Text="Ctrl+Alt+Q"/>
                     </StackPanel>
                 </Border>
 
@@ -124,6 +127,8 @@
                         <ComboBox x:Name="VoiceDeviceBox" DropDownOpened="OnVoiceDeviceBoxOpened"/>
                         <CheckBox x:Name="VoiceSpeakersCheck" Content="Also play through my speakers"
                                   Margin="0,8,0,0"/>
+                        <CheckBox x:Name="OverlapCheck" Content="Overlap sounds (play over each other instead of cutting)"
+                                  Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -154,3 +159,4 @@
         </Grid>
     </Grid>
 </Window>
+

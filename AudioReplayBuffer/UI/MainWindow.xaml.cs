@@ -26,6 +26,8 @@ public partial class MainWindow : Window
 
     private sealed record RecentItem(string Name, string Details, string FullPath);
 
+    private sealed record SoundPad(string Title, string Sub, string FullPath, bool IsPlaying);
+
     public MainWindow(AppController controller)
     {
         _controller = controller;
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
 
         UpdateStaticTexts();
         RefreshRecentList();
+        UpdateTabVisuals();
 
         _controller.ReplaySaved += (path, duration) => Dispatcher.BeginInvoke(() =>
         {
@@ -53,7 +56,11 @@ public partial class MainWindow : Window
             ShowSaveStatus("Save failed: " + message, ok: false));
         _controller.SoundboardError += message => Dispatcher.BeginInvoke(() =>
             ShowSaveStatus(message, ok: false));
-        _voicePlayer.PlaybackEnded += () => Dispatcher.BeginInvoke(() => MicPlayBtn.Content = "Play to mic");
+        _voicePlayer.PlaybackEnded += () => Dispatcher.BeginInvoke(() =>
+        {
+            MicPlayBtn.Content = "Play to mic";
+            RefreshSoundboard();
+        });
 
         // Persisting the volume on every slider tick would hammer the disk;
         // save it shortly after the user stops moving it.
@@ -296,21 +303,26 @@ public partial class MainWindow : Window
             ShowSaveStatus("Select a replay in the list first.", ok: false);
             return;
         }
+        ShowSoundProperties(item.FullPath);
+    }
 
+    /// <summary>Label / rename / hotkey / volume dialog, shared by replays and pads.</summary>
+    private void ShowSoundProperties(string path)
+    {
         var store = _controller.Soundboard;
-        string extension = Path.GetExtension(item.FullPath);
+        string extension = Path.GetExtension(path);
         var dialog = new RenameDialog(
-            store.GetLabel(item.FullPath) ?? "",
-            Path.GetFileNameWithoutExtension(item.FullPath),
+            store.GetLabel(path) ?? "",
+            Path.GetFileNameWithoutExtension(path),
             extension,
-            store.SlotOf(item.FullPath),
-            store.PathOfSlot)
+            store.SlotOf(path),
+            store.PathOfSlot,
+            store.GetVolume(path))
         { Owner = this };
         dialog.ShowDialog();
         if (!dialog.Saved)
             return;
 
-        string path = item.FullPath;
         try
         {
             if (!string.Equals(dialog.FileNameResult, Path.GetFileNameWithoutExtension(path), StringComparison.Ordinal))
@@ -328,8 +340,10 @@ public partial class MainWindow : Window
 
             store.SetLabel(path, dialog.LabelResult);
             store.AssignSlot(dialog.SlotResult, path);
+            store.SetVolume(path, dialog.VolumeResult);
             string warning = _controller.RegisterHotkey();
             RefreshRecentList();
+            RefreshSoundboard();
             ShowSaveStatus(warning.Length > 0 ? "Saved, but: " + warning : "Saved.", ok: warning.Length == 0);
         }
         catch (Exception ex)
@@ -382,6 +396,197 @@ public partial class MainWindow : Window
         }
     }
 
+    // ---------- soundboard panel ----------
+
+    private void OnReplaysTabClick(object sender, RoutedEventArgs e)
+    {
+        RecentCard.Visibility = Visibility.Visible;
+        SoundboardCard.Visibility = Visibility.Collapsed;
+        UpdateTabVisuals();
+        RefreshRecentList();
+    }
+
+    private void OnSoundboardTabClick(object sender, RoutedEventArgs e)
+    {
+        RecentCard.Visibility = Visibility.Collapsed;
+        SoundboardCard.Visibility = Visibility.Visible;
+        UpdateTabVisuals();
+        RefreshSoundboard();
+    }
+
+    private void UpdateTabVisuals()
+    {
+        bool soundboard = SoundboardCard.Visibility == Visibility.Visible;
+        ReplaysTabBtn.Opacity = soundboard ? 0.55 : 1.0;
+        SoundboardTabBtn.Opacity = soundboard ? 1.0 : 0.55;
+    }
+
+    /// <summary>Rebuilds the pad grid from the soundboard library folder.</summary>
+    private void RefreshSoundboard()
+    {
+        if (SoundboardCard.Visibility != Visibility.Visible)
+            return;
+
+        var store = _controller.Soundboard;
+        string query = PadSearchBox.Text.Trim();
+        var pads = new List<SoundPad>();
+        try
+        {
+            string dir = _controller.SoundLibraryDir;
+            if (Directory.Exists(dir))
+            {
+                pads = new DirectoryInfo(dir)
+                    .EnumerateFiles()
+                    .Where(f => f.Extension is ".mp3" or ".wav")
+                    .Select(f =>
+                    {
+                        string? label = store.GetLabel(f.FullName);
+                        string title = label ?? Path.GetFileNameWithoutExtension(f.Name);
+                        int? slot = store.SlotOf(f.FullName);
+                        TimeSpan? duration = GetDuration(f);
+                        string sub = duration is TimeSpan d ? AppController.Fmt(d) : "";
+                        if (slot != null)
+                            sub += $"  ⌨{slot}";
+                        int volume = store.GetVolume(f.FullName);
+                        if (volume != 100)
+                            sub += $"  {volume}%";
+                        return new SoundPad(title, sub.Trim(), f.FullName,
+                            _voicePlayer.IsPlayingPath(f.FullName));
+                    })
+                    .Where(p => query.Length == 0 ||
+                                p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                                Path.GetFileName(p.FullPath).Contains(query, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Could not list soundboard: " + ex.Message);
+        }
+
+        PadsGrid.ItemsSource = pads;
+        NoPadsText.Visibility = pads.Count == 0 && query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnPadSearchChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        => RefreshSoundboard();
+
+    private void OnPadClick(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not SoundPad pad)
+            return;
+        if (_voicePlayer.IsPlayingPath(pad.FullPath))
+            _voicePlayer.StopPath(pad.FullPath);
+        else
+            _controller.PlaySound(pad.FullPath);
+        RefreshSoundboard();
+    }
+
+    private static SoundPad? PadFromMenuItem(object sender)
+        => ((sender as System.Windows.Controls.MenuItem)?.Parent as System.Windows.Controls.ContextMenu)?
+            .PlacementTarget is FrameworkElement fe ? fe.Tag as SoundPad : null;
+
+    private void OnPadPlayLocalClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is SoundPad pad && File.Exists(pad.FullPath))
+            Process.Start(new ProcessStartInfo(pad.FullPath) { UseShellExecute = true });
+    }
+
+    private void OnPadPropertiesClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is SoundPad pad)
+            ShowSoundProperties(pad.FullPath);
+    }
+
+    private void OnPadExplorerClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is SoundPad pad && File.Exists(pad.FullPath))
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{pad.FullPath}\"") { UseShellExecute = true });
+    }
+
+    private void OnPadDeleteClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is not SoundPad pad)
+            return;
+        try
+        {
+            _voicePlayer.StopPath(pad.FullPath);
+            RecycleBin.Delete(pad.FullPath);
+            _controller.Soundboard.RemoveFile(pad.FullPath);
+            _controller.RegisterHotkey();
+            RefreshSoundboard();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Delete sound failed: " + ex);
+            ShowSaveStatus(ex.Message, ok: false);
+        }
+    }
+
+    private void OnAddSoundsClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Add sounds to the soundboard",
+            Filter = "Audio files (*.mp3;*.wav)|*.mp3;*.wav",
+            Multiselect = true
+        };
+        if (dialog.ShowDialog(this) == true)
+            ImportSounds(dialog.FileNames);
+    }
+
+    private void OnSoundboardDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnSoundboardDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+            ImportSounds(files);
+    }
+
+    /// <summary>Copies audio files into the soundboard library folder.</summary>
+    private void ImportSounds(IEnumerable<string> files)
+    {
+        int imported = 0;
+        try
+        {
+            string dir = _controller.SoundLibraryDir;
+            Directory.CreateDirectory(dir);
+            foreach (string file in files)
+            {
+                string ext = Path.GetExtension(file).ToLowerInvariant();
+                if (ext is not (".mp3" or ".wav") || !File.Exists(file))
+                    continue;
+                string target = ReplaySaver.UniquePath(dir, Path.GetFileNameWithoutExtension(file), ext);
+                File.Copy(file, target);
+                imported++;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Import failed: " + ex);
+            ShowSaveStatus("Import failed: " + ex.Message, ok: false);
+        }
+        RefreshSoundboard();
+        if (imported > 0)
+            ShowSaveStatus($"Added {imported} sound{(imported == 1 ? "" : "s")} to the soundboard.", ok: true);
+    }
+
+    private void OnSendToSoundboardClick(object sender, RoutedEventArgs e)
+    {
+        if (RecentList.SelectedItem is not RecentItem item || !File.Exists(item.FullPath))
+        {
+            ShowSaveStatus("Select a replay in the list first.", ok: false);
+            return;
+        }
+        ImportSounds([item.FullPath]);
+        ShowSaveStatus($"{item.Name} added to the soundboard.", ok: true);
+    }
+
     // ---------- play to mic ----------
 
     private void OnPlayToMicClick(object sender, RoutedEventArgs e)
@@ -406,25 +611,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        var s = _controller.Settings;
-        if (string.IsNullOrWhiteSpace(s.VoiceDevice))
+        if (_controller.PlaySound(item.FullPath))
         {
-            ShowSaveStatus(
-                "Set \"Voice output device\" in Settings first (your Voicemod or VB-CABLE device), " +
-                "and select its virtual mic as the input in Discord.", ok: false);
-            return;
-        }
-
-        try
-        {
-            _voicePlayer.Play(item.FullPath, s.VoiceDevice, s.VoiceAlsoSpeakers);
             MicPlayBtn.Content = "■ Stop mic";
             ShowSaveStatus($"Playing {item.Name} into your call…", ok: true);
-        }
-        catch (Exception ex)
-        {
-            Logger.Log("Play to mic failed: " + ex);
-            ShowSaveStatus(ex.Message, ok: false);
         }
     }
 

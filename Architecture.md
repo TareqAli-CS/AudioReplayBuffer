@@ -78,8 +78,9 @@ All under [AudioReplayBuffer/](AudioReplayBuffer/):
 | `EditorWindow` | UI/EditorWindow.xaml(.cs) | Replay editor: decode to 48 kHz stereo floats in memory, trim/delete/fade/volume/normalize with undo, preview playback, re-encode (save-as-copy or safe overwrite via temp + swap) |
 | `EditorWaveformView` | UI/EditorWaveformView.cs | Interactive waveform: drag-to-select, playhead, renders from 4096 precomputed peak buckets |
 | `VoicePlayer` | Core/VoicePlayer.cs | "Play to mic": plays a replay into a chosen render device (virtual cable — Voicemod/VB-CABLE) whose paired virtual microphone is the call app's input; optional mirror to default speakers; owned by AppController so soundboard hotkeys work without a window |
-| `SoundboardStore` | Core/SoundboardStore.cs | Persistent labels + soundboard slot assignments (soundboard.json next to the exe); slots 1–9 map to Ctrl+Alt+1..9, Ctrl+Alt+0 stops |
-| `RenameDialog` | UI/RenameDialog.xaml(.cs) | Per-replay dialog: label, file rename, soundboard slot assignment |
+| `SoundboardStore` | Core/SoundboardStore.cs | Persistent labels, per-sound volumes and slot assignments (soundboard.json in AppData); slots 1–9 map to Ctrl+Alt+1..9, Ctrl+Alt+0 stops |
+| `RenameDialog` | UI/RenameDialog.xaml(.cs) | Per-sound dialog: label, file rename, per-sound volume, soundboard slot assignment |
+| `LauncherWindow` | UI/LauncherWindow.xaml(.cs) | Global quick launcher (Ctrl+Alt+Q): borderless search popup, Enter plays into the call |
 | `Theme` | UI/Theme.xaml | Dark control styles (buttons, combo, sliders, checkbox, scrollbars, …) |
 | `HotkeyManager` | UI/HotkeyManager.cs | Global hotkey via `RegisterHotKey` on a hidden message window; re-registerable |
 | `TrayIconManager` | UI/TrayIconManager.cs | Tray icon + menu, save/pause/autostart/exit, balloon notifications |

@@ -4,24 +4,43 @@ using NAudio.Wave;
 namespace AudioReplayBuffer.Core;
 
 /// <summary>
-/// Plays a saved replay into a chosen render device — typically a virtual
-/// audio cable (Voicemod, VB-CABLE, …) whose paired virtual microphone is
+/// Plays sounds into a chosen render device — typically a virtual audio
+/// cable (Voicemod, VB-CABLE, …) whose paired virtual microphone is
 /// selected as the input in Discord or any call app — optionally mirrored
 /// to the default speakers so the user hears what their friends hear.
+///
+/// Playback is session-based: each Play() creates an independent session
+/// (its outputs plus a per-sound gain), so soundboard sounds can either
+/// interrupt the previous one or overlap it.
 /// </summary>
 public sealed class VoicePlayer : IDisposable
 {
-    private readonly object _lock = new();
-    private readonly List<(WasapiOut Output, AudioFileReader Reader)> _active = [];
-    private int _playingCount;
-    private int _generation;
-    private float _volume = 1f;
-    private int _mirrorIndex = -1;
+    private sealed class Session
+    {
+        public string Path = "";
+        public float SoundGain = 1f;
+        public int Remaining;
+        public int MirrorIndex = -1;
+        public readonly List<(WasapiOut Output, AudioFileReader Reader)> Outputs = [];
+    }
 
-    /// <summary>Raised (from a playback thread) when the file finished on all outputs.</summary>
+    private readonly object _lock = new();
+    private readonly List<Session> _sessions = [];
+    private float _masterVolume = 1f;
+
+    /// <summary>Raised (from a playback thread) when the last playing sound finished naturally.</summary>
     public event Action? PlaybackEnded;
 
-    public bool IsPlaying { get; private set; }
+    public bool IsPlaying
+    {
+        get { lock (_lock) return _sessions.Count > 0; }
+    }
+
+    public bool IsPlayingPath(string path)
+    {
+        lock (_lock)
+            return _sessions.Any(s => string.Equals(s.Path, path, StringComparison.OrdinalIgnoreCase));
+    }
 
     public static List<string> ListRenderDevices()
     {
@@ -32,14 +51,23 @@ public sealed class VoicePlayer : IDisposable
         return names;
     }
 
-    public void Play(string filePath, string voiceDeviceName, bool alsoSpeakers)
+    /// <param name="soundGain">Per-sound volume multiplier, on top of the master volume.</param>
+    /// <param name="overlap">False: stop whatever is playing first. True: play on top of it.</param>
+    public void Play(string filePath, string voiceDeviceName, bool alsoSpeakers,
+                     float soundGain = 1f, bool overlap = false)
     {
-        Stop();
+        if (!overlap)
+            Stop();
+
+        var session = new Session
+        {
+            Path = filePath,
+            SoundGain = Math.Clamp(soundGain, 0.1f, 3f)
+        };
+
         lock (_lock)
         {
-            int generation = _generation;
             using var enumerator = new MMDeviceEnumerator();
-
             MMDevice? voiceDevice = null;
             foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
             {
@@ -61,99 +89,108 @@ public sealed class VoicePlayer : IDisposable
                     targets.Add(speakers);
             }
 
-            _mirrorIndex = -1;
             for (int i = 0; i < targets.Count; i++)
             {
-                var reader = new AudioFileReader(filePath) { Volume = _volume };
+                var reader = new AudioFileReader(filePath) { Volume = _masterVolume * session.SoundGain };
                 var output = new WasapiOut(targets[i], AudioClientShareMode.Shared, false, 200);
                 output.Init(reader);
-                output.PlaybackStopped += (_, _) => OnOutputStopped(generation);
-                _active.Add((output, reader));
+                output.PlaybackStopped += (_, _) => OnOutputStopped(session);
+                session.Outputs.Add((output, reader));
                 if (i == 1)
-                    _mirrorIndex = _active.Count - 1; // the speakers copy
+                    session.MirrorIndex = session.Outputs.Count - 1; // the speakers copy
             }
 
-            _playingCount = _active.Count;
-            foreach (var (output, _) in _active)
+            session.Remaining = session.Outputs.Count;
+            foreach (var (output, _) in session.Outputs)
                 output.Play();
-            IsPlaying = true;
+            _sessions.Add(session);
         }
     }
 
-    private void OnOutputStopped(int generation)
+    private void OnOutputStopped(Session session)
     {
+        bool wasLast;
         lock (_lock)
         {
-            // A late event from an already-replaced playback must not touch
-            // the current one.
-            if (generation != _generation || !IsPlaying)
+            // Late event from a session that Stop()/StopPath() already
+            // removed and disposed — ignore.
+            if (!_sessions.Contains(session))
                 return;
-            if (--_playingCount > 0)
+            if (--session.Remaining > 0)
                 return;
-            IsPlaying = false;
+            _sessions.Remove(session);
+            wasLast = _sessions.Count == 0;
         }
-
-        PlaybackEnded?.Invoke();
-        // Dispose off the playback callback thread, and only if no new
-        // playback has started meanwhile.
-        Task.Run(() =>
-        {
-            lock (_lock)
-            {
-                if (generation == _generation)
-                    CleanupLocked();
-            }
-        });
+        DisposeSessionAsync(session);
+        if (wasLast)
+            PlaybackEnded?.Invoke();
     }
 
-    /// <summary>
-    /// Silences the speakers copy of the current playback immediately (the
-    /// virtual-mic copy keeps going). Used when the user unticks "hear it
-    /// too" mid-playback because of echo.
-    /// </summary>
-    public void StopMirror()
+    /// <summary>Disposal off the playback callback thread to avoid re-entrancy.</summary>
+    private static void DisposeSessionAsync(Session session) => Task.Run(() =>
     {
-        lock (_lock)
-        {
-            if (!IsPlaying || _mirrorIndex < 0 || _mirrorIndex >= _active.Count)
-                return;
-            try { _active[_mirrorIndex].Output.Stop(); } catch { }
-            _mirrorIndex = -1;
-        }
-    }
-
-    /// <summary>Sets the playback volume (1.0 = 100%); applies live to current playback.</summary>
-    public void SetVolume(float volume)
-    {
-        lock (_lock)
-        {
-            _volume = Math.Clamp(volume, 0f, 2f);
-            foreach (var (_, reader) in _active)
-                reader.Volume = _volume;
-        }
-    }
-
-    public void Stop()
-    {
-        lock (_lock)
-        {
-            _generation++;
-            CleanupLocked();
-        }
-    }
-
-    private void CleanupLocked()
-    {
-        IsPlaying = false;
-        foreach (var (output, reader) in _active)
+        foreach (var (output, reader) in session.Outputs)
         {
             try { output.Stop(); } catch { }
             output.Dispose();
             reader.Dispose();
         }
-        _active.Clear();
-        _playingCount = 0;
-        _mirrorIndex = -1;
+    });
+
+    /// <summary>
+    /// Silences the speakers copies of everything currently playing (the
+    /// virtual-mic copies keep going). The echo escape hatch.
+    /// </summary>
+    public void StopMirror()
+    {
+        lock (_lock)
+        {
+            foreach (var session in _sessions)
+            {
+                if (session.MirrorIndex < 0 || session.MirrorIndex >= session.Outputs.Count)
+                    continue;
+                try { session.Outputs[session.MirrorIndex].Output.Stop(); } catch { }
+                session.MirrorIndex = -1;
+            }
+        }
+    }
+
+    /// <summary>Sets the master volume (1.0 = 100%); applies live to everything playing.</summary>
+    public void SetVolume(float volume)
+    {
+        lock (_lock)
+        {
+            _masterVolume = Math.Clamp(volume, 0f, 2f);
+            foreach (var session in _sessions)
+                foreach (var (_, reader) in session.Outputs)
+                    reader.Volume = _masterVolume * session.SoundGain;
+        }
+    }
+
+    /// <summary>Stops only the sessions playing this file (pad toggle).</summary>
+    public void StopPath(string path)
+    {
+        List<Session> hits;
+        lock (_lock)
+        {
+            hits = _sessions.Where(s => string.Equals(s.Path, path, StringComparison.OrdinalIgnoreCase)).ToList();
+            foreach (var session in hits)
+                _sessions.Remove(session);
+        }
+        foreach (var session in hits)
+            DisposeSessionAsync(session);
+    }
+
+    public void Stop()
+    {
+        List<Session> all;
+        lock (_lock)
+        {
+            all = [.. _sessions];
+            _sessions.Clear();
+        }
+        foreach (var session in all)
+            DisposeSessionAsync(session);
     }
 
     public void Dispose() => Stop();

@@ -73,6 +73,8 @@ public partial class SettingsWindow : Window
             VoiceDeviceBox.SelectedIndex = 0;
         }
         VoiceSpeakersCheck.IsChecked = s.VoiceAlsoSpeakers;
+        OverlapCheck.IsChecked = s.SoundboardOverlap;
+        LauncherHotkeyBox.Text = s.LauncherHotkey;
 
         NotifyCheck.IsChecked = s.ShowNotifications;
         AutostartCheck.IsChecked = StartupRegistry.IsEnabled();
@@ -203,6 +205,8 @@ public partial class SettingsWindow : Window
             ClipSeconds = (int)ClipSecondsSlider.Value,
             VoiceDevice = VoiceDeviceBox.SelectedIndex > 0 ? (VoiceDeviceBox.SelectedItem as string ?? "") : "",
             VoiceAlsoSpeakers = VoiceSpeakersCheck.IsChecked == true,
+            SoundboardOverlap = OverlapCheck.IsChecked == true,
+            LauncherHotkey = LauncherHotkeyBox.Text.Trim(),
             VoiceVolume = current.VoiceVolume,
             ShowNotifications = NotifyCheck.IsChecked == true,
             FileNamePrefix = current.FileNamePrefix,

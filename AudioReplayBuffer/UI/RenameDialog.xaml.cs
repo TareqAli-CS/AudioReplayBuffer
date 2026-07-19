@@ -10,14 +10,17 @@ public partial class RenameDialog : Window
     public string LabelResult => LabelBox.Text.Trim();
     public string FileNameResult => NameBox.Text.Trim();
     public int? SlotResult => SlotBox.SelectedIndex <= 0 ? null : SlotBox.SelectedIndex;
+    public int VolumeResult => (int)VolumeSlider.Value;
 
     public RenameDialog(string label, string fileNameNoExt, string extension, int? currentSlot,
-                        Func<int, string?> pathOfSlot)
+                        Func<int, string?> pathOfSlot, int volumePercent = 100)
     {
         InitializeComponent();
         LabelBox.Text = label;
         NameBox.Text = fileNameNoExt;
         ExtText.Text = extension;
+        VolumeSlider.Value = volumePercent;
+        VolumeText.Text = $"{volumePercent}%";
 
         SlotBox.Items.Add("No hotkey");
         for (int slot = 1; slot <= Core.SoundboardStore.SlotCount; slot++)
@@ -49,6 +52,12 @@ public partial class RenameDialog : Window
         }
         Saved = true;
         Close();
+    }
+
+    private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (VolumeText != null)
+            VolumeText.Text = $"{(int)VolumeSlider.Value}%";
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => Close();

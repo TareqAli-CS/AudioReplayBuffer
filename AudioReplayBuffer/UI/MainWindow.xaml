@@ -73,8 +73,36 @@
             </StackPanel>
         </Border>
 
-        <!-- Recent replays -->
-        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,14,0,0">
+        <!-- Replays / Soundboard area -->
+        <Grid Grid.Row="2" Margin="0,14,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Tab row + shared playback volume -->
+            <Grid Grid.Row="0" Margin="2,0,2,8">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="ReplaysTabBtn" Style="{StaticResource Btn}" Content="Replays"
+                            Padding="12,5" FontSize="12" Click="OnReplaysTabClick"/>
+                    <Button x:Name="SoundboardTabBtn" Style="{StaticResource Btn}" Content="🎛 Soundboard"
+                            Padding="12,5" FontSize="12" Margin="8,0,0,0" Click="OnSoundboardTabClick"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <CheckBox x:Name="MirrorCheck" Content="Hear it too" FontSize="11"
+                              VerticalAlignment="Center" Margin="0,0,10,0"
+                              ToolTip="Also play through your speakers. Causes echo if your real mic can hear your speakers, or if Voicemod's 'Hear myself' is already on — untick to fix."/>
+                    <Slider x:Name="VoiceVolumeSlider" Width="120" Minimum="0" Maximum="200"
+                            TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="OnVoiceVolumeChanged"/>
+                    <TextBlock x:Name="VoiceVolumeText" Style="{StaticResource Dim}" FontSize="11"
+                               Width="36" Margin="6,0,0,0" VerticalAlignment="Center"
+                               TextAlignment="Right" Text="100%"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Recent replays -->
+            <Border x:Name="RecentCard" Grid.Row="1" Style="{StaticResource Card}">
             <DockPanel>
                 <Grid DockPanel.Dock="Top">
                     <TextBlock Text="Recent replays" Style="{StaticResource H2}" VerticalAlignment="Center"/>
@@ -95,22 +123,7 @@
                                 ToolTip="Move the selected replay to the Recycle Bin"/>
                     </StackPanel>
                 </Grid>
-                <Grid DockPanel.Dock="Top" Margin="0,10,0,6">
-                    <TextBlock Text="Mic playback volume" Style="{StaticResource Dim}" FontSize="11"
-                               VerticalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <CheckBox x:Name="MirrorCheck" Content="Hear it too" FontSize="11"
-                                  VerticalAlignment="Center" Margin="0,0,12,0"
-                                  ToolTip="Also play through your speakers. Causes echo if your real mic can hear your speakers, or if Voicemod's 'Hear myself' is already on — untick to fix."/>
-                        <Slider x:Name="VoiceVolumeSlider" Width="140" Minimum="0" Maximum="200"
-                                TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                ValueChanged="OnVoiceVolumeChanged"/>
-                        <TextBlock x:Name="VoiceVolumeText" Style="{StaticResource Dim}" FontSize="11"
-                                   Width="38" Margin="8,0,0,0" VerticalAlignment="Center"
-                                   TextAlignment="Right" Text="100%"/>
-                    </StackPanel>
-                </Grid>
-                <Grid>
+                <Grid Margin="0,10,0,0">
                     <ListBox x:Name="RecentList" MouseDoubleClick="OnRecentDoubleClick"
                              PreviewMouseRightButtonDown="OnRecentPreviewRightClick"
                              ContextMenuOpening="OnRecentMenuOpening">
@@ -121,6 +134,7 @@
                                 <Separator/>
                                 <MenuItem Header="Edit" Click="OnEditClick"/>
                                 <MenuItem Header="Rename / hotkey…" Click="OnRenameClick"/>
+                                <MenuItem Header="Send to soundboard" Click="OnSendToSoundboardClick"/>
                                 <MenuItem Header="Show in Explorer" Click="OnShowInExplorerClick"/>
                                 <Separator/>
                                 <MenuItem Header="Delete" Click="OnDeleteReplayClick"/>
@@ -141,7 +155,61 @@
                                Text="No replays yet — something worth keeping? Hit save."/>
                 </Grid>
             </DockPanel>
-        </Border>
+            </Border>
+
+            <!-- Soundboard -->
+            <Border x:Name="SoundboardCard" Grid.Row="1" Style="{StaticResource Card}"
+                    Visibility="Collapsed" AllowDrop="True" Drop="OnSoundboardDrop" DragOver="OnSoundboardDragOver">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="PadSearchBox" Grid.Column="0" TextChanged="OnPadSearchChanged"
+                                 ToolTip="Type to filter sounds"/>
+                        <Button Grid.Column="1" Style="{StaticResource Btn}" Content="＋ Add sounds"
+                                Padding="10,5" FontSize="12" Margin="8,0,0,0" Click="OnAddSoundsClick"
+                                ToolTip="Import MP3/WAV files into the soundboard (you can also drag &amp; drop them here)"/>
+                    </Grid>
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="PadsGrid">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource PadBtn}" Click="OnPadClick" Tag="{Binding}">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Play on this PC" Click="OnPadPlayLocalClick"/>
+                                                    <MenuItem Header="Rename / hotkey / volume…" Click="OnPadPropertiesClick"/>
+                                                    <MenuItem Header="Show in Explorer" Click="OnPadExplorerClick"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Delete" Click="OnPadDeleteClick"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap"
+                                                           MaxHeight="34" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Sub}" FontSize="10"
+                                                           Foreground="{StaticResource DimBrush}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock x:Name="NoPadsText" Style="{StaticResource Dim}" TextWrapping="Wrap"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                                   Text="No sounds yet.&#10;Drag &amp; drop MP3/WAV files here, press “＋ Add sounds”,&#10;or right-click a replay → Send to soundboard."/>
+                    </Grid>
+                </DockPanel>
+            </Border>
+        </Grid>
 
         <!-- Footer -->
         <TextBlock Grid.Row="3" Style="{StaticResource Dim}" FontSize="11" HorizontalAlignment="Center" Margin="0,12,0,4"

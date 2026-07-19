@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AudioReplayBuffer.Configuration;
@@ -55,6 +55,12 @@ public sealed class AppSettings
 
     /// <summary>"Play to mic" playback volume in percent (0–200).</summary>
     public int VoiceVolume { get; set; } = 100;
+
+    /// <summary>True: soundboard sounds play over each other instead of cutting the previous one.</summary>
+    public bool SoundboardOverlap { get; set; } = false;
+
+    /// <summary>Global hotkey that opens the quick launcher.</summary>
+    public string LauncherHotkey { get; set; } = "Ctrl+Alt+Q";
 
     /// <summary>Saved files are named Prefix_2026-07-17_21-30-00.mp3.</summary>
     public string FileNamePrefix { get; set; } = "Replay";
@@ -162,6 +168,11 @@ public sealed class AppSettings
           "VoiceAlsoSpeakers": true,
           "VoiceVolume": 100,
 
+          // Soundboard: overlap = play sounds over each other instead of cutting.
+          "SoundboardOverlap": false,
+          // Global hotkey that opens the quick launcher search popup.
+          "LauncherHotkey": "Ctrl+Alt+Q",
+
           // Files are named Prefix_2026-07-17_21-30-00.mp3
           "FileNamePrefix": "Replay",
 
@@ -180,3 +191,4 @@ public sealed class AppSettings
         }
         """;
 }
+
