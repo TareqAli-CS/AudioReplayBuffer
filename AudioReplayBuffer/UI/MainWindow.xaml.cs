@@ -28,6 +28,9 @@ public partial class MainWindow : Window
 
     private sealed record SoundPad(string Title, string Sub, string FullPath, bool IsPlaying);
 
+    /// <summary>Selected category chip; null = All.</summary>
+    private string? _selectedCategory;
+
     public MainWindow(AppController controller)
     {
         _controller = controller;
@@ -311,18 +314,31 @@ public partial class MainWindow : Window
         ShowSoundProperties(item.FullPath);
     }
 
-    /// <summary>Label / rename / hotkey / volume dialog, shared by replays and pads.</summary>
+    /// <summary>Label / rename / category / hotkey / volume dialog, shared by replays and pads.</summary>
     private void ShowSoundProperties(string path)
     {
         var store = _controller.Soundboard;
         string extension = Path.GetExtension(path);
+        string lib = _controller.SoundLibraryDir;
+
+        // Categories only apply to sounds inside the soundboard library.
+        string parentDir = Path.GetDirectoryName(path)!;
+        bool isLibrarySound = Path.GetFullPath(path).StartsWith(
+            Path.GetFullPath(lib) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        string? currentCategory = isLibrarySound &&
+            !string.Equals(Path.GetFullPath(parentDir), Path.GetFullPath(lib), StringComparison.OrdinalIgnoreCase)
+                ? Path.GetFileName(parentDir)
+                : null;
+
         var dialog = new RenameDialog(
             store.GetLabel(path) ?? "",
             Path.GetFileNameWithoutExtension(path),
             extension,
             store.SlotOf(path),
             store.PathOfSlot,
-            store.GetVolume(path))
+            store.GetVolume(path),
+            isLibrarySound ? GetCategories() : null,
+            currentCategory)
         { Owner = this };
         dialog.ShowDialog();
         if (!dialog.Saved)
@@ -341,6 +357,17 @@ public partial class MainWindow : Window
                 File.Move(path, newPath);
                 store.RenameFile(path, newPath);
                 path = newPath;
+            }
+
+            if (isLibrarySound &&
+                !string.Equals(dialog.CategoryResult, currentCategory, StringComparison.OrdinalIgnoreCase))
+            {
+                string targetDir = dialog.CategoryResult == null ? lib : Path.Combine(lib, dialog.CategoryResult);
+                Directory.CreateDirectory(targetDir);
+                string movedPath = ReplaySaver.UniquePath(targetDir, Path.GetFileNameWithoutExtension(path), extension);
+                File.Move(path, movedPath);
+                store.RenameFile(path, movedPath);
+                path = movedPath;
             }
 
             store.SetLabel(path, dialog.LabelResult);
@@ -426,7 +453,95 @@ public partial class MainWindow : Window
         SoundboardTabBtn.Opacity = soundboard ? 1.0 : 0.45;
     }
 
-    /// <summary>Rebuilds the pad grid from the soundboard library folder.</summary>
+    /// <summary>Category subfolder names inside the soundboard library.</summary>
+    private List<string> GetCategories()
+    {
+        try
+        {
+            string lib = _controller.SoundLibraryDir;
+            if (Directory.Exists(lib))
+                return Directory.GetDirectories(lib)
+                    .Select(Path.GetFileName)
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .Select(n => n!)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Could not list categories: " + ex.Message);
+        }
+        return [];
+    }
+
+    private void RebuildCategoryChips(List<string> categories)
+    {
+        if (_selectedCategory != null && !categories.Contains(_selectedCategory, StringComparer.OrdinalIgnoreCase))
+            _selectedCategory = null;
+
+        CategoryChips.Children.Clear();
+        AddCategoryChip("All", null, categories.Count > 0);
+        foreach (string category in categories)
+            AddCategoryChip(category, category, true);
+
+        var newBtn = new System.Windows.Controls.Button
+        {
+            Style = (Style)FindResource("Btn"),
+            Content = "＋ Category",
+            FontSize = 11,
+            Padding = new Thickness(9, 4, 9, 4),
+            Margin = new Thickness(0, 0, 6, 6),
+            Opacity = 0.7,
+            ToolTip = "Create a new category (a subfolder of the soundboard library)"
+        };
+        newBtn.Click += OnNewCategoryClick;
+        CategoryChips.Children.Add(newBtn);
+    }
+
+    private void AddCategoryChip(string text, string? value, bool visible)
+    {
+        if (!visible && value == null)
+            return; // hide "All" when there are no categories yet
+        bool selected = string.Equals(_selectedCategory, value, StringComparison.OrdinalIgnoreCase) ||
+                        (_selectedCategory == null && value == null);
+        var chip = new System.Windows.Controls.Button
+        {
+            Style = (Style)FindResource("Btn"),
+            Content = text,
+            FontSize = 11,
+            Padding = new Thickness(10, 4, 10, 4),
+            Margin = new Thickness(0, 0, 6, 6),
+            Opacity = selected ? 1.0 : 0.5,
+            FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal
+        };
+        chip.Click += (_, _) =>
+        {
+            _selectedCategory = value;
+            RefreshSoundboard();
+        };
+        CategoryChips.Children.Add(chip);
+    }
+
+    private void OnNewCategoryClick(object sender, RoutedEventArgs e)
+    {
+        var prompt = new InputDialog("New category", "Category name (e.g. memes, music)") { Owner = this };
+        prompt.ShowDialog();
+        if (prompt.Result is not string name || name.Length == 0)
+            return;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(_controller.SoundLibraryDir, name));
+            _selectedCategory = name;
+            RefreshSoundboard();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Create category failed: " + ex);
+            ShowSaveStatus("Could not create category: " + ex.Message, ok: false);
+        }
+    }
+
+    /// <summary>Rebuilds the category chips and pad grid from the library folder.</summary>
     private void RefreshSoundboard()
     {
         if (SoundboardView.Visibility != Visibility.Visible)
@@ -434,14 +549,27 @@ public partial class MainWindow : Window
 
         var store = _controller.Soundboard;
         string query = PadSearchBox.Text.Trim();
+        string lib = _controller.SoundLibraryDir;
+        var categories = GetCategories();
+        RebuildCategoryChips(categories);
+
         var pads = new List<SoundPad>();
         try
         {
-            string dir = _controller.SoundLibraryDir;
-            if (Directory.Exists(dir))
+            if (Directory.Exists(lib))
             {
-                pads = new DirectoryInfo(dir)
-                    .EnumerateFiles()
+                IEnumerable<FileInfo> files;
+                if (_selectedCategory == null)
+                {
+                    files = new DirectoryInfo(lib).EnumerateFiles("*", SearchOption.AllDirectories);
+                }
+                else
+                {
+                    string dir = Path.Combine(lib, _selectedCategory);
+                    files = Directory.Exists(dir) ? new DirectoryInfo(dir).EnumerateFiles() : [];
+                }
+
+                pads = files
                     .Where(f => f.Extension is ".mp3" or ".wav")
                     .Select(f =>
                     {
@@ -455,6 +583,12 @@ public partial class MainWindow : Window
                         int volume = store.GetVolume(f.FullName);
                         if (volume != 100)
                             sub += $"  {volume}%";
+                        // In the All view, show which category a sound lives in.
+                        string parent = Path.GetFileName(f.DirectoryName ?? "");
+                        if (_selectedCategory == null &&
+                            !string.Equals(f.DirectoryName, lib, StringComparison.OrdinalIgnoreCase) &&
+                            parent.Length > 0)
+                            sub += $"  · {parent}";
                         return new SoundPad(title, sub.Trim(), f.FullName,
                             _voicePlayer.IsPlayingPath(f.FullName));
                     })
@@ -562,13 +696,15 @@ public partial class MainWindow : Window
             ImportSounds(files);
     }
 
-    /// <summary>Copies audio files into the soundboard library folder.</summary>
+    /// <summary>Copies audio files into the library — into the selected category, if one is active.</summary>
     private void ImportSounds(IEnumerable<string> files)
     {
         int imported = 0;
         try
         {
-            string dir = _controller.SoundLibraryDir;
+            string dir = _selectedCategory == null
+                ? _controller.SoundLibraryDir
+                : Path.Combine(_controller.SoundLibraryDir, _selectedCategory);
             Directory.CreateDirectory(dir);
             foreach (string file in files)
             {

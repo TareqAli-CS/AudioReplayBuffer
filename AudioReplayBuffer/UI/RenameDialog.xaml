@@ -30,6 +30,9 @@
         <Slider x:Name="VolumeSlider" Minimum="10" Maximum="300" Value="100" TickFrequency="5"
                 IsSnapToTickEnabled="True" ValueChanged="OnVolumeChanged"/>
 
+        <TextBlock x:Name="CategoryLabel" Text="Category" Style="{StaticResource Lbl}"/>
+        <ComboBox x:Name="CategoryBox" SelectionChanged="OnCategoryChanged"/>
+
         <TextBlock Text="Soundboard hotkey" Style="{StaticResource Lbl}"/>
         <ComboBox x:Name="SlotBox"/>
         <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"

@@ -34,11 +34,12 @@ public partial class LauncherWindow : Window
         var store = _controller.Soundboard;
         var entries = new List<Entry>();
 
-        void AddFrom(string dir, string sub)
+        void AddFrom(string dir, string sub, bool recursive)
         {
             if (!Directory.Exists(dir))
                 return;
-            foreach (var f in new DirectoryInfo(dir).EnumerateFiles()
+            var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", option)
                          .Where(f => f.Extension is ".mp3" or ".wav")
                          .OrderByDescending(f => f.LastWriteTime))
             {
@@ -48,8 +49,10 @@ public partial class LauncherWindow : Window
             }
         }
 
-        AddFrom(_controller.SoundLibraryDir, "soundboard");
-        AddFrom(_controller.Settings.ResolveOutputFolder(), "replay");
+        // Recursive over the library so category subfolders are searchable;
+        // top-level only for replays (the library lives inside that folder).
+        AddFrom(_controller.SoundLibraryDir, "soundboard", recursive: true);
+        AddFrom(_controller.Settings.ResolveOutputFolder(), "replay", recursive: false);
         _all = entries;
     }
 

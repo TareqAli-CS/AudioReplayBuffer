@@ -6,14 +6,24 @@ namespace AudioReplayBuffer.UI;
 
 public partial class RenameDialog : Window
 {
+    private const string NoCategoryItem = "(No category)";
+    private const string NewCategoryItem = "➕  New category…";
+    private int _lastCategoryIndex;
+
     public bool Saved { get; private set; }
     public string LabelResult => LabelBox.Text.Trim();
     public string FileNameResult => NameBox.Text.Trim();
     public int? SlotResult => SlotBox.SelectedIndex <= 0 ? null : SlotBox.SelectedIndex;
     public int VolumeResult => (int)VolumeSlider.Value;
 
+    public string? CategoryResult =>
+        CategoryBox.SelectedIndex <= 0 || CategoryBox.SelectedItem as string == NewCategoryItem
+            ? null
+            : CategoryBox.SelectedItem as string;
+
     public RenameDialog(string label, string fileNameNoExt, string extension, int? currentSlot,
-                        Func<int, string?> pathOfSlot, int volumePercent = 100)
+                        Func<int, string?> pathOfSlot, int volumePercent = 100,
+                        IReadOnlyList<string>? categories = null, string? currentCategory = null)
     {
         InitializeComponent();
         LabelBox.Text = label;
@@ -21,6 +31,24 @@ public partial class RenameDialog : Window
         ExtText.Text = extension;
         VolumeSlider.Value = volumePercent;
         VolumeText.Text = $"{volumePercent}%";
+
+        if (categories == null)
+        {
+            // Not a soundboard-library sound — categories don't apply.
+            CategoryLabel.Visibility = Visibility.Collapsed;
+            CategoryBox.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            CategoryBox.Items.Add(NoCategoryItem);
+            foreach (string category in categories)
+                CategoryBox.Items.Add(category);
+            CategoryBox.Items.Add(NewCategoryItem);
+            CategoryBox.SelectedIndex = currentCategory != null && categories.Contains(currentCategory)
+                ? categories.ToList().IndexOf(currentCategory) + 1
+                : 0;
+            _lastCategoryIndex = CategoryBox.SelectedIndex;
+        }
 
         SlotBox.Items.Add("No hotkey");
         for (int slot = 1; slot <= Core.SoundboardStore.SlotCount; slot++)
@@ -52,6 +80,29 @@ public partial class RenameDialog : Window
         }
         Saved = true;
         Close();
+    }
+
+    private void OnCategoryChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CategoryBox.SelectedItem as string != NewCategoryItem)
+        {
+            _lastCategoryIndex = CategoryBox.SelectedIndex;
+            return;
+        }
+
+        var prompt = new InputDialog("New category", "Category name (e.g. memes, music)") { Owner = this };
+        prompt.ShowDialog();
+        if (prompt.Result is string name && name.Length > 0)
+        {
+            int insertAt = CategoryBox.Items.Count - 1;
+            if (!CategoryBox.Items.Contains(name))
+                CategoryBox.Items.Insert(insertAt, name);
+            CategoryBox.SelectedItem = name;
+        }
+        else
+        {
+            CategoryBox.SelectedIndex = _lastCategoryIndex;
+        }
     }
 
     private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
