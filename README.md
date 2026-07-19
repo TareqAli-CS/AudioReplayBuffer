@@ -1,3 +1,6 @@
+> [!WARNING]
+> **This project was fully written by AI** (Claude, by Anthropic). It may contain bugs or unexpected behavior. Use it at your own risk — **we are not responsible** for any problems, data loss, or damage resulting from its use.
+
 # 🔴 Audio Replay Buffer
 
 **An audio-only replay buffer for Windows.** It silently keeps the last few minutes of your PC's sound in RAM — press a hotkey and that moment is saved as an MP3. Like OBS Replay Buffer, but for audio only: no video encoding, no disk writes while idle, ~0% CPU.
