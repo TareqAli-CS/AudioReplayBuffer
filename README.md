@@ -138,6 +138,7 @@ Settings are edited in the ⚙ Settings window and stored in `%AppData%\ReplayPa
 - **Friends can't hear sounds** — Discord's input must be the *cable's microphone* side (step 3 above).
 - **Per-app capture says the app is not running** — start the target app first, or switch back to *All apps*.
 - **Echo in the call** — untick *"Hear it too"*, or use headphones.
+- **Saves blocked by Windows Ransomware Protection** — ReplayPad rescues the clip to a safe fallback folder and shows a dialog with one-click fixes: allow the app in Windows Security (recommended), or switch the library to an unprotected folder.
 - Errors are logged to `%AppData%\ReplayPad\log.txt`; unexpected errors won't kill the app.
 
 ## Tech Notes
