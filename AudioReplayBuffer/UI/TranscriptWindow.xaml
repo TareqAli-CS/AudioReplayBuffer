@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Transcript"
         Icon="/app.ico"
-        Width="640" Height="560" MinWidth="480" MinHeight="380"
+        Width="680" Height="600" MinWidth="500" MinHeight="400"
         Background="{StaticResource BgBrush}"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="18,14,18,14">
@@ -19,16 +19,44 @@
                 <TextBlock x:Name="StatusText" Style="{StaticResource Dim}" FontSize="12"
                            Margin="0,3,0,0" Text="Transcribing — uploading to Groq…"/>
             </StackPanel>
-            <CheckBox x:Name="TimestampsCheck" Content="Timestamps" FontSize="12"
-                      HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="False"
-                      Checked="OnTimestampsToggled" Unchecked="OnTimestampsToggled"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="PositionText" Style="{StaticResource Dim}" FontSize="12"
+                           VerticalAlignment="Center" Margin="0,0,10,0" Text=""/>
+                <Button x:Name="PlayBtn" Style="{StaticResource Btn}" Content="▶  Play" Padding="12,6"
+                        IsEnabled="False" Click="OnPlayPauseClick"/>
+                <Button x:Name="StopBtn" Style="{StaticResource Btn}" Content="■" Padding="10,6"
+                        Margin="8,0,0,0" IsEnabled="False" Click="OnStopClick" ToolTip="Stop and rewind"/>
+            </StackPanel>
         </Grid>
 
-        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="4">
-            <TextBox x:Name="TranscriptBox" IsReadOnly="True" TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto" BorderThickness="0"
-                     Background="Transparent" FontSize="13" Padding="10"
-                     Text="…"/>
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="6">
+            <Grid>
+                <!-- Interactive segment view: follows playback, click to jump. -->
+                <ListBox x:Name="SegmentsList" Visibility="Collapsed"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         SelectionChanged="OnSegmentSelected">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="46"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Time}" FontSize="11"
+                                           Foreground="{StaticResource BlueBrush}" VerticalAlignment="Top"
+                                           Margin="0,1,0,0"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="13"
+                                           TextWrapping="Wrap"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <!-- Fallback for no-segment results and errors. -->
+                <TextBox x:Name="TranscriptBox" IsReadOnly="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" BorderThickness="0"
+                         Background="Transparent" FontSize="13" Padding="10"
+                         Text="…"/>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="2" Margin="0,12,0,0">

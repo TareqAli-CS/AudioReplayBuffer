@@ -36,7 +36,8 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 - Safe overwrite (encodes to a temp file first — a failed save can never destroy the original)
 
 **Transcription**
-- Right-click any replay or pad → **Transcribe…** — speech-to-text via Groq's hosted Whisper (free API key), with Arabic/English/mixed-language support, optional timestamps, copy button, and a `.txt` saved next to the audio
+- Right-click any replay or pad → **Transcribe…** — speech-to-text via Groq's hosted Whisper (free API key), with Arabic/English/mixed-language support, copy button, and a `.txt` saved next to the audio
+- **Synced playback**: play the audio inside the transcript window — the current line highlights and scrolls with the sound, and **clicking any line jumps playback to that moment**
 - Needs a free key from [console.groq.com](https://console.groq.com) (⚙ Settings → Transcription). Note: the audio is uploaded to Groq for processing.
 
 **App**
