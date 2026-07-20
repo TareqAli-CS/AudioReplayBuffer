@@ -87,6 +87,13 @@ public sealed class AppController : IDisposable
         AudioCaptureEngine.BytesPerSecond);
 
     /// <summary>
+    /// Temporarily releases every global hotkey so a capture field can
+    /// record combos that are currently bound. Call RegisterHotkey() to
+    /// restore them.
+    /// </summary>
+    public void SuspendHotkeys() => _hotkeys.UnregisterAll();
+
+    /// <summary>
     /// Registers all hotkeys (save/clip/launcher/stop, slots, per-sound
     /// customs). Everything managed is unregistered first so swapping two
     /// combos in one save works, then duplicates are reported with the

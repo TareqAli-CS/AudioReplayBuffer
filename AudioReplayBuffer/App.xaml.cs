@@ -64,6 +64,11 @@ public partial class App : Application
         _tray = new TrayIconManager(_controller, ShowMainWindow, ExitApplication);
         _controller.LauncherRequested += ShowLauncher;
 
+        // While a hotkey field is capturing, global hotkeys must be off —
+        // otherwise pressing a bound combo fires it instead of setting it.
+        HotkeyBox.CaptureStarted += () => _controller?.SuspendHotkeys();
+        HotkeyBox.CaptureEnded += () => _controller?.RegisterHotkey();
+
         string hotkeyError = _controller.RegisterHotkey();
         if (hotkeyError.Length > 0)
         {

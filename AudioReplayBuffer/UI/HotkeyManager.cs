@@ -91,6 +91,18 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
             UnregisterHotKey(Handle, id);
     }
 
+    /// <summary>
+    /// Releases every registered combo. Used while a hotkey-capture field
+    /// has focus — otherwise pressing a currently-bound combo would fire
+    /// the hotkey instead of being captured.
+    /// </summary>
+    public void UnregisterAll()
+    {
+        foreach (int id in _registered.ToList())
+            UnregisterHotKey(Handle, id);
+        _registered.Clear();
+    }
+
     protected override void WndProc(ref Message m)
     {
         if (m.Msg == WmHotkey)

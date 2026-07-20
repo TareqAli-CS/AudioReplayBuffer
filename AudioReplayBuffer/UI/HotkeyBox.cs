@@ -24,6 +24,16 @@ public sealed class HotkeyBox : Control
         set => SetValue(HotkeyProperty, value ?? "");
     }
 
+    /// <summary>
+    /// Raised when any HotkeyBox gains focus. The app suspends all global
+    /// hotkeys during capture — otherwise pressing a combo that is
+    /// currently bound would trigger it instead of being recorded.
+    /// </summary>
+    public static event Action? CaptureStarted;
+
+    /// <summary>Raised when capture ends; the app re-registers its hotkeys.</summary>
+    public static event Action? CaptureEnded;
+
     private TextBlock? _text;
     private Button? _clear;
     private string? _preview;
@@ -87,6 +97,7 @@ public sealed class HotkeyBox : Control
     protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
     {
         base.OnGotKeyboardFocus(e);
+        CaptureStarted?.Invoke();
         UpdateDisplay();
     }
 
@@ -94,6 +105,7 @@ public sealed class HotkeyBox : Control
     {
         _preview = null;
         base.OnLostKeyboardFocus(e);
+        CaptureEnded?.Invoke();
         UpdateDisplay();
     }
 
