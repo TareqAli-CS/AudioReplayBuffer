@@ -35,6 +35,10 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 - **Effects:** reverse, 🐿 chipmunk (fast + high) and 🐻 deep voice (slow + low) — applied to the selection or the whole sound
 - Safe overwrite (encodes to a temp file first — a failed save can never destroy the original)
 
+**Transcription**
+- Right-click any replay or pad → **Transcribe…** — speech-to-text via Groq's hosted Whisper (free API key), with Arabic/English/mixed-language support, optional timestamps, copy button, and a `.txt` saved next to the audio
+- Needs a free key from [console.groq.com](https://console.groq.com) (⚙ Settings → Transcription). Note: the audio is uploaded to Groq for processing.
+
 **App**
 - Dark UI with an icon rail switching between full-window Soundboard and Replay modes
 - Closes to the system tray and keeps recording; optional start with Windows (hidden)
@@ -124,6 +128,7 @@ Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioRep
 | `OutputFolder` | `Music\Replays` | Replays folder; the soundboard library is its `Soundboard` subfolder |
 | `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — / `100` / `true` | Call output device, master volume, self-monitor |
 | `SoundboardOverlap` | `false` | Sounds layer over each other instead of cutting |
+| `GroqApiKey` | — | Free key for transcription (stored only on your PC) |
 | `DesktopGain` / `MicrophoneGain` | `1.0` | Capture volume per source |
 
 ## Troubleshooting

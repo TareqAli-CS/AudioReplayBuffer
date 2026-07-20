@@ -322,6 +322,31 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
     }
 
+    private void OpenTranscription(string path)
+    {
+        string apiKey = _controller.Settings.GroqApiKey.Trim();
+        if (apiKey.Length == 0)
+        {
+            ShowSaveStatus(
+                "Transcription needs a free Groq API key — create one at console.groq.com and paste it in ⚙ Settings → Transcription.",
+                ok: false);
+            return;
+        }
+        new TranscriptWindow(path, apiKey) { Owner = this }.Show();
+    }
+
+    private void OnTranscribeReplayClick(object sender, RoutedEventArgs e)
+    {
+        if (RecentList.SelectedItem is RecentItem item && File.Exists(item.FullPath))
+            OpenTranscription(item.FullPath);
+    }
+
+    private void OnPadTranscribeClick(object sender, RoutedEventArgs e)
+    {
+        if (PadFromMenuItem(sender) is SoundPad pad && File.Exists(pad.FullPath))
+            OpenTranscription(pad.FullPath);
+    }
+
     private void OnShowInExplorerClick(object sender, RoutedEventArgs e)
     {
         if (RecentList.SelectedItem is not RecentItem item || !File.Exists(item.FullPath))

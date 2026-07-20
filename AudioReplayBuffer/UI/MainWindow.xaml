@@ -138,6 +138,7 @@
                                         <MenuItem Header="Edit" Click="OnEditClick"/>
                                         <MenuItem Header="Rename / hotkey…" Click="OnRenameClick"/>
                                         <MenuItem Header="Send to soundboard" Click="OnSendToSoundboardClick"/>
+                                        <MenuItem Header="Transcribe…" Click="OnTranscribeReplayClick"/>
                                         <MenuItem Header="Show in Explorer" Click="OnShowInExplorerClick"/>
                                         <Separator/>
                                         <MenuItem Header="Delete" Click="OnDeleteReplayClick"/>
@@ -230,6 +231,7 @@
                                                         <MenuItem Header="Rename / hotkey / volume…" Click="OnPadPropertiesClick"/>
                                                         <MenuItem Header="Move / copy to category…" Click="OnPadMoveClick"/>
                                                         <MenuItem Header="Pin / unpin (show first)" Click="OnPadPinClick"/>
+                                                        <MenuItem Header="Transcribe…" Click="OnPadTranscribeClick"/>
                                                         <MenuItem Header="Show in Explorer" Click="OnPadExplorerClick"/>
                                                         <Separator/>
                                                         <MenuItem Header="Delete" Click="OnPadDeleteClick"/>

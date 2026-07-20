@@ -77,6 +77,7 @@ public partial class SettingsWindow : Window
         LauncherHotkeyBox.Hotkey = s.LauncherHotkey;
         StopHotkeyBox.Hotkey = s.StopHotkey;
 
+        GroqKeyBox.Text = s.GroqApiKey;
         NotifyCheck.IsChecked = s.ShowNotifications;
         AutostartCheck.IsChecked = StartupRegistry.IsEnabled();
     }
@@ -209,6 +210,7 @@ public partial class SettingsWindow : Window
             SoundboardOverlap = OverlapCheck.IsChecked == true,
             LauncherHotkey = LauncherHotkeyBox.Hotkey.Trim(),
             StopHotkey = StopHotkeyBox.Hotkey.Trim(),
+            GroqApiKey = GroqKeyBox.Text.Trim(),
             VoiceVolume = current.VoiceVolume,
             ShowNotifications = NotifyCheck.IsChecked == true,
             FileNamePrefix = current.FileNamePrefix,
@@ -239,6 +241,12 @@ public partial class SettingsWindow : Window
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => Close();
+
+    private void OnLinkClick(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
+    }
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

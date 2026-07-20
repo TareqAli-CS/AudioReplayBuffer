@@ -146,6 +146,21 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Transcription -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Transcription" Style="{StaticResource H2}"/>
+                        <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0">
+                            Turns a recording into text (right-click a replay or pad → Transcribe). Needs a free Groq
+                            API key from <Hyperlink NavigateUri="https://console.groq.com" RequestNavigate="OnLinkClick"
+                            Foreground="{StaticResource BlueBrush}">console.groq.com</Hyperlink> — the key is stored only
+                            on this PC. Note: the audio file is uploaded to Groq for processing.
+                        </TextBlock>
+                        <TextBlock Text="Groq API key" Style="{StaticResource Lbl}"/>
+                        <TextBox x:Name="GroqKeyBox"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- General -->
                 <Border Style="{StaticResource Card}" Margin="0,14,0,0">
                     <StackPanel>

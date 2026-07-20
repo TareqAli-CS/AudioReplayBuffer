@@ -65,6 +65,12 @@ public sealed class AppSettings
     /// <summary>Global hotkey that stops all soundboard playback.</summary>
     public string StopHotkey { get; set; } = "Ctrl+Alt+0";
 
+    /// <summary>
+    /// Groq API key for the transcription feature (free at console.groq.com).
+    /// Stored only in this local file. Empty = transcription disabled.
+    /// </summary>
+    public string GroqApiKey { get; set; } = "";
+
     /// <summary>Saved files are named Prefix_2026-07-17_21-30-00.mp3.</summary>
     public string FileNamePrefix { get; set; } = "Replay";
 
@@ -177,6 +183,9 @@ public sealed class AppSettings
           "LauncherHotkey": "Ctrl+Alt+Q",
           // Global hotkey that stops all soundboard playback.
           "StopHotkey": "Ctrl+Alt+0",
+
+          // Groq API key for transcription (free at console.groq.com). Local only.
+          "GroqApiKey": "",
 
           // Files are named Prefix_2026-07-17_21-30-00.mp3
           "FileNamePrefix": "Replay",
