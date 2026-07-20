@@ -16,7 +16,7 @@ public partial class RenameDialog : Window
     public int? SlotResult => SlotBox.SelectedIndex <= 0 ? null : SlotBox.SelectedIndex;
     public int VolumeResult => (int)VolumeSlider.Value;
     public string? CustomHotkeyResult =>
-        CustomHotkeyBox.Text.Trim().Length == 0 ? null : CustomHotkeyBox.Text.Trim();
+        CustomHotkeyBox.Hotkey.Trim().Length == 0 ? null : CustomHotkeyBox.Hotkey.Trim();
 
     private static readonly string?[] PadColors =
         [null, "#E5484D", "#E5A33B", "#46C066", "#4F8CFF", "#A06CE5", "#E56CB3", "#8B8B96"];
@@ -42,7 +42,7 @@ public partial class RenameDialog : Window
         VolumeSlider.Value = volumePercent;
         VolumeText.Text = $"{volumePercent}%";
 
-        CustomHotkeyBox.Text = currentCustomHotkey ?? "";
+        CustomHotkeyBox.Hotkey = currentCustomHotkey ?? "";
         _selectedColor = currentColor;
         BuildColorRow();
 

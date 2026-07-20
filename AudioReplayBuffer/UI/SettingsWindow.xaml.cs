@@ -57,8 +57,8 @@ public partial class SettingsWindow : Window
         MinutesSlider.Value = s.BufferMinutes;
         BitrateBox.SelectedIndex = Math.Max(0, Array.IndexOf(Bitrates, s.Bitrate));
         FolderBox.Text = s.ResolveOutputFolder();
-        HotkeyBox.Text = s.Hotkey;
-        ClipHotkeyBox.Text = s.ClipHotkey;
+        HotkeyBox.Hotkey = s.Hotkey;
+        ClipHotkeyBox.Hotkey = s.ClipHotkey;
         ClipSecondsSlider.Value = s.ClipSeconds;
 
         VoiceDeviceBox.Items.Clear();
@@ -74,7 +74,8 @@ public partial class SettingsWindow : Window
         }
         VoiceSpeakersCheck.IsChecked = s.VoiceAlsoSpeakers;
         OverlapCheck.IsChecked = s.SoundboardOverlap;
-        LauncherHotkeyBox.Text = s.LauncherHotkey;
+        LauncherHotkeyBox.Hotkey = s.LauncherHotkey;
+        StopHotkeyBox.Hotkey = s.StopHotkey;
 
         NotifyCheck.IsChecked = s.ShowNotifications;
         AutostartCheck.IsChecked = StartupRegistry.IsEnabled();
@@ -200,13 +201,14 @@ public partial class SettingsWindow : Window
             BufferMinutes = (int)MinutesSlider.Value,
             Bitrate = Bitrates[Math.Max(0, BitrateBox.SelectedIndex)],
             OutputFolder = FolderBox.Text.Trim(),
-            Hotkey = HotkeyBox.Text.Trim(),
-            ClipHotkey = ClipHotkeyBox.Text.Trim(),
+            Hotkey = HotkeyBox.Hotkey.Trim(),
+            ClipHotkey = ClipHotkeyBox.Hotkey.Trim(),
             ClipSeconds = (int)ClipSecondsSlider.Value,
             VoiceDevice = VoiceDeviceBox.SelectedIndex > 0 ? (VoiceDeviceBox.SelectedItem as string ?? "") : "",
             VoiceAlsoSpeakers = VoiceSpeakersCheck.IsChecked == true,
             SoundboardOverlap = OverlapCheck.IsChecked == true,
-            LauncherHotkey = LauncherHotkeyBox.Text.Trim(),
+            LauncherHotkey = LauncherHotkeyBox.Hotkey.Trim(),
+            StopHotkey = StopHotkeyBox.Hotkey.Trim(),
             VoiceVolume = current.VoiceVolume,
             ShowNotifications = NotifyCheck.IsChecked == true,
             FileNamePrefix = current.FileNamePrefix,

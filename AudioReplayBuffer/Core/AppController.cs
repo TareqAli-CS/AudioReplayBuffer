@@ -72,7 +72,10 @@ public sealed class AppController : IDisposable
                 PlaySlot(id - SlotHotkeyBase);
             else if (_customHotkeyPaths.TryGetValue(id, out var customPath))
             {
-                if (PlaySound(customPath))
+                // Second press of the same hotkey stops the sound.
+                if (Voice.IsPlayingPath(customPath))
+                    Voice.StopPath(customPath);
+                else if (PlaySound(customPath))
                     Logger.Log($"Custom hotkey → {Path.GetFileName(customPath)}");
             }
         };
@@ -107,9 +110,9 @@ public sealed class AppController : IDisposable
             }
         }
 
-        if (Soundboard.AnySlotAssigned || Soundboard.CustomHotkeys.Count > 0)
+        if (!string.IsNullOrWhiteSpace(Settings.StopHotkey))
         {
-            if (!_hotkeys.TryRegister(StopSoundHotkeyId, "Ctrl+Alt+D0", out string stopError))
+            if (!_hotkeys.TryRegister(StopSoundHotkeyId, Settings.StopHotkey, out string stopError))
                 errors.Add(stopError);
         }
         else
@@ -170,12 +173,17 @@ public sealed class AppController : IDisposable
         }
     }
 
-    /// <summary>Plays the sound assigned to a soundboard slot into the call.</summary>
+    /// <summary>Plays the sound assigned to a soundboard slot; a second press stops it.</summary>
     public void PlaySlot(int slot)
     {
         string? path = Soundboard.PathOfSlot(slot);
         if (path == null)
             return;
+        if (Voice.IsPlayingPath(path))
+        {
+            Voice.StopPath(path);
+            return;
+        }
         if (PlaySound(path))
             Logger.Log($"Soundboard {slot} → {Path.GetFileName(path)}");
     }

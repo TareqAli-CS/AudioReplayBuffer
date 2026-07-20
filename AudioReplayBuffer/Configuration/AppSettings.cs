@@ -62,6 +62,9 @@ public sealed class AppSettings
     /// <summary>Global hotkey that opens the quick launcher.</summary>
     public string LauncherHotkey { get; set; } = "Ctrl+Alt+Q";
 
+    /// <summary>Global hotkey that stops all soundboard playback.</summary>
+    public string StopHotkey { get; set; } = "Ctrl+Alt+0";
+
     /// <summary>Saved files are named Prefix_2026-07-17_21-30-00.mp3.</summary>
     public string FileNamePrefix { get; set; } = "Replay";
 
@@ -172,6 +175,8 @@ public sealed class AppSettings
           "SoundboardOverlap": false,
           // Global hotkey that opens the quick launcher search popup.
           "LauncherHotkey": "Ctrl+Alt+Q",
+          // Global hotkey that stops all soundboard playback.
+          "StopHotkey": "Ctrl+Alt+0",
 
           // Files are named Prefix_2026-07-17_21-30-00.mp3
           "FileNamePrefix": "Replay",

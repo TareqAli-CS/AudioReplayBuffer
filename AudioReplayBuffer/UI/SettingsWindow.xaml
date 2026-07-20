@@ -92,8 +92,8 @@
                     <StackPanel>
                         <TextBlock Text="Hotkeys" Style="{StaticResource H2}"/>
 
-                        <TextBlock Text="Save full replay (click, then press a combo)" Style="{StaticResource Lbl}"/>
-                        <ui:HotkeyBox x:Name="HotkeyBox" Text="Ctrl+Alt+S"/>
+                        <TextBlock Text="Save full replay (click a field, then press the combo)" Style="{StaticResource Lbl}"/>
+                        <ui:HotkeyBox x:Name="HotkeyBox"/>
 
                         <Grid>
                             <TextBlock Text="Save short clip" Style="{StaticResource Lbl}"/>
@@ -106,14 +106,27 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ui:HotkeyBox x:Name="ClipHotkeyBox" Grid.Column="0" Text="Ctrl+Alt+D"/>
+                            <ui:HotkeyBox x:Name="ClipHotkeyBox" Grid.Column="0"/>
                             <Slider x:Name="ClipSecondsSlider" Grid.Column="2" Minimum="10" Maximum="120"
                                     TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
                                     ValueChanged="OnClipSecondsChanged"/>
                         </Grid>
 
-                        <TextBlock Text="Quick launcher (search any sound mid-game)" Style="{StaticResource Lbl}"/>
-                        <ui:HotkeyBox x:Name="LauncherHotkeyBox" Text="Ctrl+Alt+Q"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Quick launcher" Style="{StaticResource Lbl}"/>
+                                <ui:HotkeyBox x:Name="LauncherHotkeyBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Stop all sounds" Style="{StaticResource Lbl}"/>
+                                <ui:HotkeyBox x:Name="StopHotkeyBox"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

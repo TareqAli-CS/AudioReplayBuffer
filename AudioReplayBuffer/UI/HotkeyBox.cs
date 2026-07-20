@@ -1,96 +1,149 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace AudioReplayBuffer.UI;
 
 /// <summary>
-/// A TextBox that records a key combo by pressing it instead of typing it.
-/// Click → press e.g. Ctrl+Shift+B → the box shows "Ctrl+Shift+B" (its Text
-/// is always a string HotkeyManager can parse). Backspace/Delete clears,
-/// Esc reverts, a held modifier shows a live "Ctrl+…" preview. Bare keys
-/// are rejected (except F1–F24) so a global hotkey can't hijack normal
-/// typing.
+/// Keybind field, styled like a game's controls menu: shows "Click to set"
+/// when empty, an accent highlight with "Press a combo…" while capturing,
+/// the bold combo when set, and an ✕ button to remove it. The Hotkey
+/// property always holds a string HotkeyManager can parse.
 /// </summary>
-public sealed class HotkeyBox : TextBox
+public sealed class HotkeyBox : Control
 {
-    private string _committed = "";
-    private bool _selfChange;
+    public static readonly DependencyProperty HotkeyProperty = DependencyProperty.Register(
+        nameof(Hotkey), typeof(string), typeof(HotkeyBox),
+        new FrameworkPropertyMetadata("", FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+            (d, _) => ((HotkeyBox)d).UpdateDisplay()));
+
+    public string Hotkey
+    {
+        get => (string)GetValue(HotkeyProperty);
+        set => SetValue(HotkeyProperty, value ?? "");
+    }
+
+    private TextBlock? _text;
+    private Button? _clear;
+    private string? _preview;
 
     public HotkeyBox()
     {
-        IsReadOnly = true;
-        IsReadOnlyCaretVisible = false;
+        Focusable = true;
+        FocusVisualStyle = null;
         Cursor = Cursors.Hand;
-        ContextMenu = null;
-        ToolTip = "Click, then press the key combo you want (e.g. Ctrl+Shift+B or F9). Backspace removes it.";
+        ToolTip = "Click, then press the key combo you want. ✕ or Backspace removes it.";
     }
 
-    protected override void OnTextChanged(TextChangedEventArgs e)
+    public override void OnApplyTemplate()
     {
-        base.OnTextChanged(e);
-        // External assignments (dialog load) are the committed value;
-        // our own transient previews are not.
-        if (!_selfChange)
-            _committed = Text;
+        base.OnApplyTemplate();
+        _text = GetTemplateChild("PART_Text") as TextBlock;
+        _clear = GetTemplateChild("PART_Clear") as Button;
+        if (_clear != null)
+            _clear.Click += (_, e) =>
+            {
+                Hotkey = "";
+                e.Handled = true;
+            };
+        UpdateDisplay();
     }
 
-    private void SetText(string text)
+    private void UpdateDisplay()
     {
-        _selfChange = true;
-        Text = text;
-        _selfChange = false;
+        if (_text == null)
+            return;
+        bool focused = IsKeyboardFocusWithin;
+
+        if (_preview != null)
+        {
+            _text.Text = _preview;
+            _text.Opacity = 0.85;
+        }
+        else if (Hotkey.Length > 0)
+        {
+            _text.Text = Hotkey;
+            _text.Opacity = 1.0;
+        }
+        else
+        {
+            _text.Text = focused ? "Press a combo…" : "Click to set";
+            _text.Opacity = 0.45;
+        }
+
+        if (_clear != null)
+            _clear.Visibility = Hotkey.Length > 0 && _preview == null
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
-    private void Commit(string combo)
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
-        _committed = combo;
-        SetText(combo);
-    }
-
-    protected override void OnPreviewKeyDown(KeyEventArgs e)
-    {
+        Focus();
         e.Handled = true;
+    }
+
+    protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
+    {
+        base.OnGotKeyboardFocus(e);
+        UpdateDisplay();
+    }
+
+    protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
+    {
+        _preview = null;
+        base.OnLostKeyboardFocus(e);
+        UpdateDisplay();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab)
+            return; // keep keyboard navigation working
+        e.Handled = true;
 
         switch (key)
         {
             case Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
                  or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin:
-                SetText(ModifierPrefix() + "…");
+                _preview = ModifierPrefix() + "…";
+                UpdateDisplay();
                 return;
             case Key.Back or Key.Delete:
-                Commit("");
+                _preview = null;
+                Hotkey = "";
+                UpdateDisplay();
                 return;
             case Key.Escape:
-                SetText(_committed);
-                return;
-            case Key.Tab:
-                e.Handled = false; // keep keyboard navigation working
+                _preview = null;
+                UpdateDisplay();
                 return;
         }
 
         bool isFunctionKey = key is >= Key.F1 and <= Key.F24;
         if (Keyboard.Modifiers == ModifierKeys.None && !isFunctionKey)
         {
-            SetText("Add Ctrl / Alt / Shift…");
+            _preview = "Add Ctrl / Alt / Shift…";
+            UpdateDisplay();
             return;
         }
 
-        Commit(ModifierPrefix() + KeyName(key));
+        _preview = null;
+        Hotkey = ModifierPrefix() + KeyName(key);
+        UpdateDisplay();
     }
 
-    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    protected override void OnKeyUp(KeyEventArgs e)
     {
         // Modifiers released without completing a combo → drop the preview.
-        if (Keyboard.Modifiers == ModifierKeys.None && Text != _committed)
-            SetText(_committed);
-        base.OnPreviewKeyUp(e);
-    }
-
-    protected override void OnLostKeyboardFocus(System.Windows.Input.KeyboardFocusChangedEventArgs e)
-    {
-        SetText(_committed);
-        base.OnLostKeyboardFocus(e);
+        if (_preview != null && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            _preview = null;
+            UpdateDisplay();
+        }
+        base.OnKeyUp(e);
     }
 
     private static string ModifierPrefix()
@@ -104,9 +157,10 @@ public sealed class HotkeyBox : TextBox
         return prefix;
     }
 
-    /// <summary>WPF Key → a name the WinForms-based hotkey parser accepts.</summary>
+    /// <summary>WPF Key → a name the hotkey parser accepts (digits stay pretty).</summary>
     private static string KeyName(Key key) => key switch
     {
+        >= Key.D0 and <= Key.D9 => ((int)(key - Key.D0)).ToString(),
         Key.Return => "Enter",
         Key.Next => "PageDown",
         Key.Prior => "PageUp",

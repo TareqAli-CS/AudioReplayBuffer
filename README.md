@@ -104,9 +104,11 @@ Switch to 🎙 in the rail for the recorder: live level meter, buffer fill, wave
 |---|---|
 | `Ctrl+Alt+S` | Save the whole buffer as MP3 |
 | `Ctrl+Alt+D` | Save the last 30 seconds |
-| `Ctrl+Alt+1`–`9` | Play soundboard slot into the call |
+| `Ctrl+Alt+1`–`9` | Play soundboard slot into the call (press again to stop it) |
 | `Ctrl+Alt+0` | Stop all soundboard playback |
 | `Ctrl+Alt+Q` | Quick launcher (search & play any sound) |
+
+Sound hotkeys toggle: pressing a sound's combo while it plays **stops it** instead of restarting it. All hotkey fields are set by **clicking and pressing the combo** (✕ removes it).
 
 All configurable in ⚙ Settings.
 
@@ -118,7 +120,7 @@ Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioRep
 |---|---|---|
 | `CaptureMode` / `TargetApp` / `TargetAppExclude` | `Desktop` / — / `false` | What the buffer records |
 | `BufferMinutes` / `Bitrate` | `5` / `192` | Buffer length (≈11 MB RAM per minute) and MP3 quality |
-| `Hotkey` / `ClipHotkey` / `ClipSeconds` / `LauncherHotkey` | see table above | Hotkeys |
+| `Hotkey` / `ClipHotkey` / `ClipSeconds` / `LauncherHotkey` / `StopHotkey` | see table above | Hotkeys (all configurable) |
 | `OutputFolder` | `Music\Replays` | Replays folder; the soundboard library is its `Soundboard` subfolder |
 | `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — / `100` / `true` | Call output device, master volume, self-monitor |
 | `SoundboardOverlap` | `false` | Sounds layer over each other instead of cutting |

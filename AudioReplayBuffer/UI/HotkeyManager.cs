@@ -44,7 +44,10 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
                 case "shift": modifiers |= ModShift; break;
                 case "win" or "windows": modifiers |= ModWin; break;
                 default:
-                    if (!Enum.TryParse(part, ignoreCase: true, out key))
+                    // Bare digits mean the number row (Keys.D0..D9); without
+                    // this, Enum.TryParse would read "1" as a numeric enum value.
+                    string keyName = part.Length == 1 && char.IsDigit(part[0]) ? "D" + part : part;
+                    if (!Enum.TryParse(keyName, ignoreCase: true, out key))
                     {
                         error = $"Unknown key \"{part}\" in hotkey \"{hotkey}\".";
                         return false;

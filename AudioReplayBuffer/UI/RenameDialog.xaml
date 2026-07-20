@@ -40,7 +40,7 @@
         <TextBlock Text="Soundboard hotkey (slot)" Style="{StaticResource Lbl}"/>
         <ComboBox x:Name="SlotBox"/>
 
-        <TextBlock Text="Custom hotkey (click, then press a combo — optional)" Style="{StaticResource Lbl}"/>
+        <TextBlock Text="Custom hotkey (optional)" Style="{StaticResource Lbl}"/>
         <ui:HotkeyBox x:Name="CustomHotkeyBox"/>
         <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
                    Text="The hotkey plays this sound into your call from anywhere, even mid-game. Ctrl+Alt+0 stops playback. Picking a hotkey that is in use moves it to this sound."/>
