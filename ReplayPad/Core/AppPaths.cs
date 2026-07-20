@@ -12,6 +12,14 @@ public static class AppPaths
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReplayPad");
 
     public static string SettingsPath => Path.Combine(DataDir, "appsettings.json");
+
+    /// <summary>
+    /// Rescue location for saves when the configured output folder is
+    /// blocked (e.g. by Controlled Folder Access). LocalAppData is never
+    /// among Windows' protected folders.
+    /// </summary>
+    public static string FallbackReplaysDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReplayPad", "Replays");
     public static string SoundboardPath => Path.Combine(DataDir, "soundboard.json");
     public static string LogPath => Path.Combine(DataDir, "log.txt");
 

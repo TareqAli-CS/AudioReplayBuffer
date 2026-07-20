@@ -90,6 +90,8 @@ public partial class MainWindow : Window
             ShowSaveStatus("Save failed: " + message, ok: false));
         _controller.SoundboardError += message => Dispatcher.BeginInvoke(() =>
             ShowSaveStatus(message, ok: false));
+        _controller.SaveBlocked += (blockedFolder, rescuedPath) => Dispatcher.BeginInvoke(() =>
+            OnSaveBlocked(blockedFolder, rescuedPath));
         _voicePlayer.PlaybackEnded += () => Dispatcher.BeginInvoke(() =>
         {
             MicPlayBtn.Content = "Play to mic";
@@ -223,6 +225,77 @@ public partial class MainWindow : Window
         _controller.ClearBuffer();
         WaveView.Update([]);
         ShowSaveStatus("Buffer cleared — recording continues from now", ok: true);
+    }
+
+    private bool _blockedDialogOpen;
+
+    /// <summary>The output folder is blocked; the save was rescued — guide the fix.</summary>
+    private void OnSaveBlocked(string blockedFolder, string rescuedPath)
+    {
+        ShowSaveStatus($"Windows blocked \"{blockedFolder}\" — clip rescued to {Path.GetFileName(rescuedPath)}.", ok: false);
+        if (_blockedDialogOpen)
+            return;
+        _blockedDialogOpen = true;
+        try
+        {
+            var dialog = new BlockedSaveDialog(blockedFolder);
+            if (IsVisible)
+                dialog.Owner = this;
+            dialog.ShowDialog();
+
+            if (dialog.SwitchToFolder is string newFolder)
+            {
+                var current = _controller.Settings;
+                var updated = new AppSettings
+                {
+                    CaptureMode = current.CaptureMode,
+                    TargetApp = current.TargetApp,
+                    TargetAppExclude = current.TargetAppExclude,
+                    DesktopGain = current.DesktopGain,
+                    MicrophoneGain = current.MicrophoneGain,
+                    BufferMinutes = current.BufferMinutes,
+                    Bitrate = current.Bitrate,
+                    OutputFolder = newFolder,
+                    Hotkey = current.Hotkey,
+                    ClipHotkey = current.ClipHotkey,
+                    ClipSeconds = current.ClipSeconds,
+                    LauncherHotkey = current.LauncherHotkey,
+                    StopHotkey = current.StopHotkey,
+                    GroqApiKey = current.GroqApiKey,
+                    VoiceDevice = current.VoiceDevice,
+                    VoiceAlsoSpeakers = current.VoiceAlsoSpeakers,
+                    VoiceVolume = current.VoiceVolume,
+                    SoundboardOverlap = current.SoundboardOverlap,
+                    ShowNotifications = current.ShowNotifications,
+                    FileNamePrefix = current.FileNamePrefix,
+                    KeepAliveSilence = current.KeepAliveSilence,
+                    FFmpegPath = current.FFmpegPath
+                };
+                _controller.ApplySettings(updated);
+
+                // Bring the rescued clip into the new library.
+                try
+                {
+                    Directory.CreateDirectory(newFolder);
+                    string target = Path.Combine(newFolder, Path.GetFileName(rescuedPath));
+                    if (File.Exists(rescuedPath) && !File.Exists(target))
+                        File.Move(rescuedPath, target);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Could not move rescued clip: " + ex.Message);
+                }
+
+                UpdateStaticTexts();
+                RefreshRecentList();
+                RefreshSoundboard();
+                ShowSaveStatus($"Library switched to {newFolder}.", ok: true);
+            }
+        }
+        finally
+        {
+            _blockedDialogOpen = false;
+        }
     }
 
     private void ShowSaveStatus(string text, bool ok)

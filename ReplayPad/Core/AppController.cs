@@ -38,6 +38,12 @@ public sealed class AppController : IDisposable
     /// <summary>Raised from a background thread after a successful save.</summary>
     public event Action<string, TimeSpan>? ReplaySaved;
     public event Action<string>? SaveFailed;
+
+    /// <summary>
+    /// Raised when the configured output folder was blocked and the save
+    /// was rescued to the fallback folder (blockedFolder, rescuedPath).
+    /// </summary>
+    public event Action<string, string>? SaveBlocked;
     public event Action<string>? SoundboardError;
     public event Action? StateChanged;
 
@@ -265,9 +271,12 @@ public sealed class AppController : IDisposable
         {
             try
             {
-                string path = saver.Save(pcm, tail != null ? "clip" : null);
-                Logger.Log($"Saved {Fmt(duration)} of audio to {path}");
-                ReplaySaved?.Invoke(path, duration);
+                var result = saver.Save(pcm, tail != null ? "clip" : null);
+                Logger.Log($"Saved {Fmt(duration)} of audio to {result.Path}" +
+                           (result.Rescued ? " (rescued — output folder blocked)" : ""));
+                ReplaySaved?.Invoke(result.Path, duration);
+                if (result.Rescued)
+                    SaveBlocked?.Invoke(Settings.ResolveOutputFolder(), result.Path);
             }
             catch (Exception ex)
             {

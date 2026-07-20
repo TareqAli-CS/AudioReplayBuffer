@@ -12,15 +12,43 @@ namespace ReplayPad.Core;
 /// </summary>
 public sealed class ReplaySaver(AppSettings settings)
 {
-    public string Save(byte[] pcm, string? tag = null)
+    public sealed record SaveResult(string Path, bool Rescued, string? PrimaryError);
+
+    public SaveResult Save(byte[] pcm, string? tag = null)
     {
         if (pcm.Length == 0)
             throw new InvalidOperationException("The buffer is empty — nothing captured yet.");
 
-        string folder = settings.ResolveOutputFolder();
-        Directory.CreateDirectory(folder);
         string suffix = tag != null ? "-" + tag : "";
         string baseName = $"{settings.FileNamePrefix}{suffix}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+
+        string folder = settings.ResolveOutputFolder();
+        try
+        {
+            return new SaveResult(SaveTo(folder, baseName, pcm), Rescued: false, PrimaryError: null);
+        }
+        catch (Exception primary)
+        {
+            Logger.Log($"Saving to {folder} failed ({primary.Message}) — rescuing to the fallback folder.");
+            // The configured folder is unwritable (typically Controlled
+            // Folder Access). Rescue the audio into a folder Windows never
+            // protects rather than losing the recording.
+            string fallback = AppPaths.FallbackReplaysDir;
+            try
+            {
+                return new SaveResult(SaveTo(fallback, baseName, pcm), Rescued: true, PrimaryError: primary.Message);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Fallback save failed too: " + ex.Message);
+                throw new InvalidOperationException(primary.Message + ControlledFolderHint(folder), primary);
+            }
+        }
+    }
+
+    private string SaveTo(string folder, string baseName, byte[] pcm)
+    {
+        Directory.CreateDirectory(folder);
         string mp3Path = UniquePath(folder, baseName, ".mp3");
 
         try
@@ -35,26 +63,19 @@ public sealed class ReplaySaver(AppSettings settings)
             TryDelete(mp3Path);
         }
 
-        try
+        string? ffmpeg = FindFFmpeg();
+        if (ffmpeg != null)
         {
-            string? ffmpeg = FindFFmpeg();
-            if (ffmpeg != null)
-            {
-                EncodeWithFFmpeg(ffmpeg, pcm, mp3Path);
-                return mp3Path;
-            }
+            EncodeWithFFmpeg(ffmpeg, pcm, mp3Path);
+            return mp3Path;
+        }
 
-            // Last resort: uncompressed WAV beats losing the recording.
-            string wavPath = UniquePath(folder, baseName, ".wav");
-            using var wavSource = CreateWaveStream(pcm);
-            WaveFileWriter.CreateWaveFile(wavPath, wavSource);
-            Logger.Log("No MP3 encoder available — saved WAV instead: " + wavPath);
-            return wavPath;
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException(ex.Message + ControlledFolderHint(folder), ex);
-        }
+        // Last resort: uncompressed WAV beats losing the recording.
+        string wavPath = UniquePath(folder, baseName, ".wav");
+        using var wavSource = CreateWaveStream(pcm);
+        WaveFileWriter.CreateWaveFile(wavPath, wavSource);
+        Logger.Log("No MP3 encoder available — saved WAV instead: " + wavPath);
+        return wavPath;
     }
 
     /// <summary>
