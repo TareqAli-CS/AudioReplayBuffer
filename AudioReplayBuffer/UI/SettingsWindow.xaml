@@ -158,17 +158,6 @@
                         </TextBlock>
                         <TextBlock Text="Groq API key" Style="{StaticResource Lbl}"/>
                         <TextBox x:Name="GroqKeyBox"/>
-
-                        <CheckBox x:Name="DetectSpeakersCheck" Margin="0,14,0,0"
-                                  Content="Detect different speakers (Speaker 1 / Speaker 2 …)"/>
-                        <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0">
-                            Speaker detection uses AssemblyAI instead of Groq — get a free key at
-                            <Hyperlink NavigateUri="https://www.assemblyai.com" RequestNavigate="OnLinkClick"
-                            Foreground="{StaticResource BlueBrush}">assemblyai.com</Hyperlink>. Click a speaker's name
-                            in the transcript to rename them.
-                        </TextBlock>
-                        <TextBlock Text="AssemblyAI API key" Style="{StaticResource Lbl}"/>
-                        <TextBox x:Name="AssemblyKeyBox"/>
                     </StackPanel>
                 </Border>
 
