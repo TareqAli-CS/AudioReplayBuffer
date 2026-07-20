@@ -1,7 +1,7 @@
-> [!WARNING]
+﻿> [!WARNING]
 > **This project was fully written by AI** (Claude, by Anthropic). It may contain bugs or unexpected behavior. Use it at your own risk — **we are not responsible** for any problems, data loss, or damage resulting from its use.
 
-# 🔴 Audio Replay Buffer
+# 🔴 ReplayPad
 
 **A soundboard that records its own material.** Two tools in one Windows app:
 
@@ -10,7 +10,7 @@
 
 Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in two drags, drop it on the board — and replay it at them forever. All at ~0% CPU while idle.
 
-![Audio Replay Buffer](docs/screenshot.png)
+![ReplayPad](docs/screenshot.png)
 
 ## Features
 
@@ -43,7 +43,7 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 **App**
 - Dark UI with an icon rail switching between full-window Soundboard and Replay modes
 - Closes to the system tray and keeps recording; optional start with Windows (hidden)
-- Settings live in `%AppData%\AudioReplayBuffer` and **survive updates**; built-in **update checker**
+- Settings live in `%AppData%\ReplayPad` and **survive updates**; built-in **update checker**
 - Crash-resilient: unexpected errors are logged (`log.txt`) and the app keeps recording
 
 ## Requirements
@@ -55,20 +55,20 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 
 ## Installation
 
-**Easiest:** download **`AudioReplayBuffer-Setup-x.x.x.exe`** from the **[Releases page](https://github.com/TareqAli-CS/AudioReplayBuffer/releases)** and run it — per-user install, no admin rights, Start Menu shortcut, clean uninstaller. A **portable zip** (unzip & run) is also there. The app checks for new releases on startup and via tray → *Check for updates*.
+**Easiest:** download **`ReplayPad-Setup-x.x.x.exe`** from the **[Releases page](https://github.com/TareqAli-CS/ReplayPad/releases)** and run it — per-user install, no admin rights, Start Menu shortcut, clean uninstaller. A **portable zip** (unzip & run) is also there. The app checks for new releases on startup and via tray → *Check for updates*.
 
 > Windows SmartScreen may warn about the unsigned exe — click *More info → Run anyway*.
 
 **From source:**
 
 ```powershell
-git clone https://github.com/TareqAli-CS/AudioReplayBuffer.git
-cd AudioReplayBuffer
-dotnet publish AudioReplayBuffer -c Release -r win-x64 --self-contained true -o publish
-publish\AudioReplayBuffer.exe
+git clone https://github.com/TareqAli-CS/ReplayPad.git
+cd ReplayPad
+dotnet publish ReplayPad -c Release -r win-x64 --self-contained true -o publish
+publish\ReplayPad.exe
 ```
 
-The installer itself is built from [installer/AudioReplayBuffer.iss](installer/AudioReplayBuffer.iss) with [Inno Setup](https://jrsoftware.org/isinfo.php).
+The installer itself is built from [installer/ReplayPad.iss](installer/ReplayPad.iss) with [Inno Setup](https://jrsoftware.org/isinfo.php).
 
 ## Quick Start
 
@@ -119,7 +119,7 @@ All configurable in ⚙ Settings.
 
 ## Configuration
 
-Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioReplayBuffer\appsettings.json` (labels, hotkey slots, colors, and pins live in `soundboard.json` next to it — everything survives updates):
+Settings are edited in the ⚙ Settings window and stored in `%AppData%\ReplayPad\appsettings.json` (labels, hotkey slots, colors, and pins live in `soundboard.json` next to it — everything survives updates):
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -138,7 +138,7 @@ Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioRep
 - **Friends can't hear sounds** — Discord's input must be the *cable's microphone* side (step 3 above).
 - **Per-app capture says the app is not running** — start the target app first, or switch back to *All apps*.
 - **Echo in the call** — untick *"Hear it too"*, or use headphones.
-- Errors are logged to `%AppData%\AudioReplayBuffer\log.txt`; unexpected errors won't kill the app.
+- Errors are logged to `%AppData%\ReplayPad\log.txt`; unexpected errors won't kill the app.
 
 ## Tech Notes
 

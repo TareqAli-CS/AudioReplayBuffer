@@ -1,6 +1,6 @@
-# Audio Replay Buffer — Architecture
+﻿# ReplayPad — Architecture
 
-> **Note:** This project pivoted. The original plan ([project.md](project.md)) was a service that converts OBS Replay Buffer MKVs to MP3. The current tool replaces OBS entirely: it maintains its own audio-only replay buffer and saves MP3 directly, with no video ever recorded. The code lives in [AudioReplayBuffer/](AudioReplayBuffer/).
+> **Note:** This project pivoted. The original plan ([project.md](project.md)) was a service that converts OBS Replay Buffer MKVs to MP3. The current tool replaces OBS entirely: it maintains its own audio-only replay buffer and saves MP3 directly, with no video ever recorded. The code lives in [ReplayPad/](ReplayPad/).
 
 ---
 
@@ -12,7 +12,7 @@ The window shows live status (level meter, buffered duration), a save button, ed
 
 Compared to OBS Replay Buffer:
 
-| | OBS | Audio Replay Buffer |
+| | OBS | ReplayPad |
 |---|---|---|
 | Idle cost | Constant video encoding (CPU/GPU) | ~0% CPU, ~70 MB RAM |
 | Disk while idle | Writes MKV on save, needs conversion | Nothing |
@@ -58,13 +58,13 @@ Which sources exist is controlled by `CaptureMode` (`Desktop`, `Microphone`, `Bo
 
 # 3. Components
 
-All under [AudioReplayBuffer/](AudioReplayBuffer/):
+All under [ReplayPad/](ReplayPad/):
 
 | Component | File | Responsibility |
 |---|---|---|
 | `App` | App.xaml(.cs) | Single-instance mutex, config load, Media Foundation init, wires controller + window + tray |
 | `AppController` | Core/AppController.cs | The brain shared by window and tray: owns ring/engine/saver/hotkey, save + live settings-apply logic, events |
-| `AppPaths` | Core/AppPaths.cs | User data location: %AppData%\AudioReplayBuffer (settings, soundboard, log) so installer updates can't wipe it; one-time migration from the legacy exe-directory location |
+| `AppPaths` | Core/AppPaths.cs | User data location: %AppData%\ReplayPad (settings, soundboard, log) so installer updates can't wipe it; one-time migration from the legacy exe-directory location |
 | `AppSettings` | Configuration/AppSettings.cs | Load/validate/save `appsettings.json`; writes a commented default if missing |
 | `AudioCaptureEngine` | Core/AudioCaptureEngine.cs | WASAPI captures, format conversion, mixing, ring-buffer feed, device-change recovery, peak level for the UI meter |
 | `CircularAudioBuffer` | Core/CircularAudioBuffer.cs | Thread-safe PCM ring buffer; `Snapshot()` returns chronological copy |
@@ -111,7 +111,7 @@ Settings changed in the window apply live: the capture engine is rebuilt in plac
 
 **Per-app capture.** When `TargetApp` is set, the desktop source is a `ProcessLoopbackCapture` (Windows process-loopback API, Windows 10 2004+) targeting that process tree — optionally inverted (`TargetAppExclude`) to capture everything *except* it. It delivers audio in the engine's native format, needs no silence keep-alive, and is independent of the render device. The app picker in the UI lists processes with active audio sessions. Hard-won detail: activation and the read loop must share one MTA thread; activating from the WPF STA thread makes later `IAudioCaptureClient` calls fail with E_NOINTERFACE.
 
-**Editor works on floats, saves defensively.** The editor (`Edit` button on a selected recent replay, or `AudioReplayBuffer.exe --edit <file>`) decodes the whole file to an in-memory float array; all tools are array operations with a 3-level undo stack (files over ~35 min are refused to bound memory). "Overwrite original" encodes to a temp file first and swaps, so a failed encode can never destroy the recording. Encoding reuses `ReplaySaver.EncodeTo` (Media Foundation → ffmpeg).
+**Editor works on floats, saves defensively.** The editor (`Edit` button on a selected recent replay, or `ReplayPad.exe --edit <file>`) decodes the whole file to an in-memory float array; all tools are array operations with a 3-level undo stack (files over ~35 min are refused to bound memory). "Overwrite original" encodes to a temp file first and swaps, so a failed encode can never destroy the recording. Encoding reuses `ReplaySaver.EncodeTo` (Media Foundation → ffmpeg).
 
 **Tray app, not a Windows Service.** Global hotkeys and WASAPI capture require the user's desktop session, which services (session 0) don't have. Autostart is a per-user Run registry key, toggleable from the tray menu.
 
@@ -154,10 +154,10 @@ Settings changed in the window apply live: the capture engine is rebuilt in plac
 # 7. Build & Run
 
 ```powershell
-dotnet build AudioReplayBuffer -c Release          # or:
-dotnet publish AudioReplayBuffer -c Release -r win-x64 /p:PublishSingleFile=true --self-contained false
+dotnet build ReplayPad -c Release          # or:
+dotnet publish ReplayPad -c Release -r win-x64 /p:PublishSingleFile=true --self-contained false
 ```
 
-Run `AudioReplayBuffer.exe`, look for the red-dot tray icon. Right-click for: save now, open output folder, open settings, pause/resume, start with Windows, exit. Double-clicking the icon also saves.
+Run `ReplayPad.exe`, look for the red-dot tray icon. Right-click for: save now, open output folder, open settings, pause/resume, start with Windows, exit. Double-clicking the icon also saves.
 
 Measured on this machine: **0% CPU idle, ~70 MB RAM** (5-minute buffer), valid 192 kbps MP3 output.

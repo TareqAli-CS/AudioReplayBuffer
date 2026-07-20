@@ -1,0 +1,191 @@
+﻿<Window x:Class="ReplayPad.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:ReplayPad.UI"
+        Title="Settings — ReplayPad"
+        Icon="/app.ico"
+        Width="560" Height="720" MinWidth="500" MinHeight="560"
+        Background="{StaticResource BgBrush}"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <Grid Margin="20,16,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,0,-8,0" Padding="0,0,8,0">
+            <StackPanel>
+
+                <!-- Capture -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Capture" Style="{StaticResource H2}"/>
+
+                        <TextBlock Text="Capture source" Style="{StaticResource Lbl}"/>
+                        <ComboBox x:Name="ModeBox" SelectionChanged="OnModeChanged">
+                            <ComboBoxItem Content="Desktop audio (everything you hear)"/>
+                            <ComboBoxItem Content="Microphone only"/>
+                            <ComboBoxItem Content="Desktop + microphone"/>
+                        </ComboBox>
+
+                        <TextBlock Text="App to capture" Style="{StaticResource Lbl}"/>
+                        <ComboBox x:Name="AppBox" DropDownOpened="OnAppBoxOpened"/>
+                        <CheckBox x:Name="ExcludeAppCheck" Content="Capture everything except this app"
+                                  Margin="0,8,0,0"/>
+
+                        <Grid>
+                            <TextBlock Text="Desktop volume" Style="{StaticResource Lbl}"/>
+                            <TextBlock x:Name="DesktopGainText" Style="{StaticResource Dim}" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="100%"/>
+                        </Grid>
+                        <Slider x:Name="DesktopGainSlider" Minimum="0" Maximum="200" TickFrequency="5"
+                                IsSnapToTickEnabled="True" ValueChanged="OnGainChanged"/>
+
+                        <Grid>
+                            <TextBlock Text="Microphone volume" Style="{StaticResource Lbl}"/>
+                            <TextBlock x:Name="MicGainText" Style="{StaticResource Dim}" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="100%"/>
+                        </Grid>
+                        <Slider x:Name="MicGainSlider" Minimum="0" Maximum="200" TickFrequency="5"
+                                IsSnapToTickEnabled="True" ValueChanged="OnGainChanged"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Buffer & saving -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Buffer &amp; saving" Style="{StaticResource H2}"/>
+
+                        <Grid>
+                            <TextBlock Text="Buffer length" Style="{StaticResource Lbl}"/>
+                            <TextBlock x:Name="MinutesText" Style="{StaticResource Dim}" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="5 min"/>
+                        </Grid>
+                        <Slider x:Name="MinutesSlider" Minimum="1" Maximum="30" TickFrequency="1"
+                                IsSnapToTickEnabled="True" ValueChanged="OnMinutesChanged"/>
+
+                        <TextBlock Text="MP3 quality" Style="{StaticResource Lbl}"/>
+                        <ComboBox x:Name="BitrateBox">
+                            <ComboBoxItem Content="128 kbps — small files"/>
+                            <ComboBoxItem Content="160 kbps"/>
+                            <ComboBoxItem Content="192 kbps — recommended"/>
+                            <ComboBoxItem Content="256 kbps"/>
+                            <ComboBoxItem Content="320 kbps — best"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Output folder" Style="{StaticResource Lbl}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="FolderBox" Grid.Column="0"/>
+                            <Button Grid.Column="1" Style="{StaticResource Btn}" Content="…" Width="38"
+                                    Margin="6,0,0,0" Click="OnBrowseClick"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Hotkeys -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Hotkeys" Style="{StaticResource H2}"/>
+
+                        <TextBlock Text="Save full replay (click a field, then press the combo)" Style="{StaticResource Lbl}"/>
+                        <ui:HotkeyBox x:Name="HotkeyBox"/>
+
+                        <Grid>
+                            <TextBlock Text="Save short clip" Style="{StaticResource Lbl}"/>
+                            <TextBlock x:Name="ClipSecondsText" Style="{StaticResource Dim}" FontSize="12"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="30 s"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:HotkeyBox x:Name="ClipHotkeyBox" Grid.Column="0"/>
+                            <Slider x:Name="ClipSecondsSlider" Grid.Column="2" Minimum="10" Maximum="120"
+                                    TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                    ValueChanged="OnClipSecondsChanged"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Quick launcher" Style="{StaticResource Lbl}"/>
+                                <ui:HotkeyBox x:Name="LauncherHotkeyBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Stop all sounds" Style="{StaticResource Lbl}"/>
+                                <ui:HotkeyBox x:Name="StopHotkeyBox"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Play to mic -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Play to mic" Style="{StaticResource H2}"/>
+                        <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="Pick the virtual cable device (Voicemod / VB-CABLE). In your call app, select that cable's virtual microphone as input."/>
+
+                        <TextBlock Text="Voice output device" Style="{StaticResource Lbl}"/>
+                        <ComboBox x:Name="VoiceDeviceBox" DropDownOpened="OnVoiceDeviceBoxOpened"/>
+                        <CheckBox x:Name="VoiceSpeakersCheck" Content="Also play through my speakers"
+                                  Margin="0,8,0,0"/>
+                        <CheckBox x:Name="OverlapCheck" Content="Overlap sounds (play over each other instead of cutting)"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Transcription -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Transcription" Style="{StaticResource H2}"/>
+                        <TextBlock Style="{StaticResource Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0">
+                            Turns a recording into text (right-click a replay or pad → Transcribe). Needs a free Groq
+                            API key from <Hyperlink NavigateUri="https://console.groq.com" RequestNavigate="OnLinkClick"
+                            Foreground="{StaticResource BlueBrush}">console.groq.com</Hyperlink> — the key is stored only
+                            on this PC. Note: the audio file is uploaded to Groq for processing.
+                        </TextBlock>
+                        <TextBlock Text="Groq API key" Style="{StaticResource Lbl}"/>
+                        <TextBox x:Name="GroqKeyBox"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- General -->
+                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="General" Style="{StaticResource H2}"/>
+                        <CheckBox x:Name="NotifyCheck" Content="Notify me when a replay is saved" Margin="0,12,0,0"/>
+                        <CheckBox x:Name="AutostartCheck" Content="Start with Windows (opens hidden in the tray)"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource Dim}" FontSize="11" Margin="2,10,0,0" TextWrapping="Wrap"
+                           Text="Changes apply when you press Save. Changing the buffer length clears audio captured so far."/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="1" Margin="0,14,0,0">
+            <TextBlock x:Name="StatusText" FontSize="12" VerticalAlignment="Center"
+                       TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Left"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Btn}" Content="Cancel" Padding="16,8" Click="OnCancelClick"/>
+                <Button Style="{StaticResource BtnAccent}" Content="Save" Padding="22,8"
+                        Margin="8,0,0,0" Click="OnSaveClick"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
+

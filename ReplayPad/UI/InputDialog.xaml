@@ -1,0 +1,21 @@
+﻿<Window x:Class="ReplayPad.UI.InputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Input"
+        Icon="/app.ico"
+        Width="340" SizeToContent="Height" ResizeMode="NoResize"
+        Background="{StaticResource BgBrush}"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <StackPanel Margin="18,14,18,16">
+        <TextBlock x:Name="PromptText" Style="{StaticResource Lbl}" Margin="0,0,0,5" Text="Value"/>
+        <TextBox x:Name="InputBox"/>
+        <TextBlock x:Name="ErrorText" FontSize="12" Foreground="{StaticResource WarnBrush}"
+                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Style="{StaticResource Btn}" Content="Cancel" Padding="14,7" Click="OnCancelClick"/>
+            <Button Style="{StaticResource BtnAccent}" Content="OK" Padding="20,7"
+                    Margin="8,0,0,0" Click="OnOkClick"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
