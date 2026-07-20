@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using AudioReplayBuffer.Configuration;
 using AudioReplayBuffer.Core;
 using NAudio.Wave;
 
@@ -11,31 +12,49 @@ namespace AudioReplayBuffer.UI;
 
 /// <summary>
 /// Shows the transcript with synchronized local playback: the active line
-/// highlights and scrolls with the audio, and clicking a line jumps
-/// playback to that moment. A plain .txt is saved next to the audio.
+/// highlights and scrolls with the audio, clicking a line jumps playback
+/// to that moment, and (with speaker detection) speakers are colored and
+/// renamable. A plain .txt is saved next to the audio.
 /// </summary>
 public partial class TranscriptWindow : Window
 {
-    private sealed record SegmentVm(TimeSpan Start, TimeSpan End, string Time, string Text);
+    private sealed record SegmentVm(TimeSpan Start, TimeSpan End, string Time, string Text,
+                                    string? SpeakerKey, string SpeakerDisplay,
+                                    Brush? SpeakerBrush, Visibility SpeakerVisibility);
+
+    private static readonly Brush[] SpeakerPalette =
+    [
+        new SolidColorBrush(Color.FromRgb(0x4F, 0x8C, 0xFF)),
+        new SolidColorBrush(Color.FromRgb(0x46, 0xC0, 0x66)),
+        new SolidColorBrush(Color.FromRgb(0xE5, 0xA3, 0x3B)),
+        new SolidColorBrush(Color.FromRgb(0xA0, 0x6C, 0xE5)),
+        new SolidColorBrush(Color.FromRgb(0xE5, 0x6C, 0xB3)),
+        new SolidColorBrush(Color.FromRgb(0xE5, 0x48, 0x4D)),
+    ];
 
     private readonly string _audioPath;
-    private readonly string _apiKey;
+    private readonly AppSettings _settings;
     private readonly CancellationTokenSource _cts = new();
     private readonly DispatcherTimer _timer;
     private TranscriptResult? _result;
     private List<SegmentVm> _segments = [];
+    private readonly Dictionary<string, string> _speakerNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Brush> _speakerBrushes = new(StringComparer.OrdinalIgnoreCase);
 
     private AudioFileReader? _reader;
     private IWavePlayer? _player;
     private bool _syncingSelection;
 
-    public TranscriptWindow(string audioPath, string apiKey)
+    public TranscriptWindow(string audioPath, AppSettings settings)
     {
         _audioPath = audioPath;
-        _apiKey = apiKey;
+        _settings = settings;
         InitializeComponent();
         FileNameText.Text = Path.GetFileName(audioPath);
         Title = $"Transcript — {Path.GetFileName(audioPath)}";
+        StatusText.Text = settings.DetectSpeakers
+            ? "Transcribing with speaker detection — uploading to AssemblyAI…"
+            : "Transcribing — uploading to Groq…";
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _timer.Tick += (_, _) => SyncWithPlayback();
@@ -55,10 +74,12 @@ public partial class TranscriptWindow : Window
     {
         try
         {
-            _result = await Transcriber.TranscribeAsync(_audioPath, _apiKey, _cts.Token);
+            _result = _settings.DetectSpeakers
+                ? await Transcriber.TranscribeWithSpeakersAsync(_audioPath, _settings.AssemblyAiApiKey, _cts.Token)
+                : await Transcriber.TranscribeAsync(_audioPath, _settings.GroqApiKey, _cts.Token);
 
             string language = _result.Language is string lang && lang.Length > 0
-                ? $" · detected language: {CultureInfo.CurrentCulture.TextInfo.ToTitleCase(lang)}"
+                ? $" · language: {CultureInfo.CurrentCulture.TextInfo.ToTitleCase(lang)}"
                 : "";
             StatusText.Text = "Done" + language + " — click a line to play from there";
             CopyBtn.IsEnabled = true;
@@ -67,10 +88,13 @@ public partial class TranscriptWindow : Window
 
             if (_result.Segments.Count > 0)
             {
-                _segments = _result.Segments
-                    .Select(s => new SegmentVm(s.Start, s.End, Fmt(s.Start), s.Text))
-                    .ToList();
-                SegmentsList.ItemsSource = _segments;
+                foreach (var segment in _result.Segments)
+                    if (segment.Speaker is string key && !_speakerNames.ContainsKey(key))
+                    {
+                        _speakerNames[key] = key;
+                        _speakerBrushes[key] = SpeakerPalette[_speakerBrushes.Count % SpeakerPalette.Length];
+                    }
+                RebuildSegments();
                 SegmentsList.Visibility = Visibility.Visible;
                 TranscriptBox.Visibility = Visibility.Collapsed;
             }
@@ -79,17 +103,7 @@ public partial class TranscriptWindow : Window
                 TranscriptBox.Text = _result.Text.Length > 0 ? _result.Text : "(no speech detected)";
             }
 
-            try
-            {
-                string txtPath = Path.ChangeExtension(_audioPath, ".txt");
-                File.WriteAllText(txtPath, _result.Text);
-                SavedText.Text = $"Saved {Path.GetFileName(txtPath)} next to the audio.";
-            }
-            catch (Exception ex)
-            {
-                Logger.Log("Transcript .txt save failed: " + ex.Message);
-                SavedText.Text = "Could not save the .txt (transcript is still shown here).";
-            }
+            SaveTxt();
         }
         catch (OperationCanceledException)
         {
@@ -101,8 +115,74 @@ public partial class TranscriptWindow : Window
             StatusText.Text = "Failed";
             StatusText.Foreground = (Brush)FindResource("WarnBrush");
             TranscriptBox.Text = ex.Message +
-                "\n\nCheck your Groq API key in Settings → Transcription, and your internet connection.";
+                (_settings.DetectSpeakers
+                    ? "\n\nCheck your AssemblyAI API key in Settings → Transcription, and your internet connection."
+                    : "\n\nCheck your Groq API key in Settings → Transcription, and your internet connection.");
         }
+    }
+
+    private void RebuildSegments()
+    {
+        if (_result == null)
+            return;
+        int selected = SegmentsList.SelectedIndex;
+        _segments = _result.Segments.Select(s =>
+        {
+            bool hasSpeaker = s.Speaker != null;
+            return new SegmentVm(
+                s.Start, s.End, Fmt(s.Start), s.Text,
+                s.Speaker,
+                hasSpeaker ? _speakerNames[s.Speaker!] + ":" : "",
+                hasSpeaker ? _speakerBrushes[s.Speaker!] : null,
+                hasSpeaker ? Visibility.Visible : Visibility.Collapsed);
+        }).ToList();
+        _syncingSelection = true;
+        SegmentsList.ItemsSource = _segments;
+        SegmentsList.SelectedIndex = selected;
+        _syncingSelection = false;
+    }
+
+    /// <summary>Transcript as plain text, with speaker names when present.</summary>
+    private string ComposeText()
+    {
+        if (_result == null)
+            return "";
+        if (_result.Segments.Any(s => s.Speaker != null))
+            return string.Join(Environment.NewLine,
+                _result.Segments.Select(s =>
+                    s.Speaker != null ? $"{_speakerNames[s.Speaker]}: {s.Text}" : s.Text));
+        return _result.Text;
+    }
+
+    private void SaveTxt()
+    {
+        try
+        {
+            string txtPath = Path.ChangeExtension(_audioPath, ".txt");
+            File.WriteAllText(txtPath, ComposeText());
+            SavedText.Text = $"Saved {Path.GetFileName(txtPath)} next to the audio.";
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("Transcript .txt save failed: " + ex.Message);
+            SavedText.Text = "Could not save the .txt (transcript is still shown here).";
+        }
+    }
+
+    /// <summary>Click a speaker chip → rename that speaker everywhere.</summary>
+    private void OnSpeakerClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        e.Handled = true; // don't let the click select the line and seek
+        if ((sender as FrameworkElement)?.DataContext is not SegmentVm segment || segment.SpeakerKey == null)
+            return;
+        string current = _speakerNames[segment.SpeakerKey];
+        var prompt = new InputDialog("Rename speaker", $"Name for {current}", current) { Owner = this };
+        prompt.ShowDialog();
+        if (prompt.Result is not string name || name.Length == 0)
+            return;
+        _speakerNames[segment.SpeakerKey] = name;
+        RebuildSegments();
+        SaveTxt();
     }
 
     // ---------- playback ----------
@@ -230,7 +310,7 @@ public partial class TranscriptWindow : Window
     {
         try
         {
-            Clipboard.SetText(_result?.Text ?? TranscriptBox.Text);
+            Clipboard.SetText(_result != null ? ComposeText() : TranscriptBox.Text);
             SavedText.Text = "Copied to clipboard.";
         }
         catch (Exception ex)

@@ -78,6 +78,8 @@ public partial class SettingsWindow : Window
         StopHotkeyBox.Hotkey = s.StopHotkey;
 
         GroqKeyBox.Text = s.GroqApiKey;
+        AssemblyKeyBox.Text = s.AssemblyAiApiKey;
+        DetectSpeakersCheck.IsChecked = s.DetectSpeakers;
         NotifyCheck.IsChecked = s.ShowNotifications;
         AutostartCheck.IsChecked = StartupRegistry.IsEnabled();
     }
@@ -211,6 +213,8 @@ public partial class SettingsWindow : Window
             LauncherHotkey = LauncherHotkeyBox.Hotkey.Trim(),
             StopHotkey = StopHotkeyBox.Hotkey.Trim(),
             GroqApiKey = GroqKeyBox.Text.Trim(),
+            AssemblyAiApiKey = AssemblyKeyBox.Text.Trim(),
+            DetectSpeakers = DetectSpeakersCheck.IsChecked == true,
             VoiceVolume = current.VoiceVolume,
             ShowNotifications = NotifyCheck.IsChecked == true,
             FileNamePrefix = current.FileNamePrefix,

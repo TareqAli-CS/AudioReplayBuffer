@@ -40,12 +40,19 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="46"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{Binding Time}" FontSize="11"
                                            Foreground="{StaticResource BlueBrush}" VerticalAlignment="Top"
                                            Margin="0,1,0,0"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="13"
+                                <TextBlock Grid.Column="1" Text="{Binding SpeakerDisplay}" FontSize="12"
+                                           FontWeight="SemiBold" Foreground="{Binding SpeakerBrush}"
+                                           Visibility="{Binding SpeakerVisibility}" VerticalAlignment="Top"
+                                           Margin="0,0,8,0" Cursor="Hand"
+                                           ToolTip="Click to rename this speaker"
+                                           PreviewMouseLeftButtonDown="OnSpeakerClick"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Text}" FontSize="13"
                                            TextWrapping="Wrap"/>
                             </Grid>
                         </DataTemplate>

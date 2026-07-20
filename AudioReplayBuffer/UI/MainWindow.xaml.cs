@@ -324,15 +324,22 @@ public partial class MainWindow : Window
 
     private void OpenTranscription(string path)
     {
-        string apiKey = _controller.Settings.GroqApiKey.Trim();
-        if (apiKey.Length == 0)
+        var s = _controller.Settings;
+        if (s.DetectSpeakers && s.AssemblyAiApiKey.Trim().Length == 0)
+        {
+            ShowSaveStatus(
+                "Speaker detection needs a free AssemblyAI API key — create one at assemblyai.com and paste it in ⚙ Settings → Transcription.",
+                ok: false);
+            return;
+        }
+        if (!s.DetectSpeakers && s.GroqApiKey.Trim().Length == 0)
         {
             ShowSaveStatus(
                 "Transcription needs a free Groq API key — create one at console.groq.com and paste it in ⚙ Settings → Transcription.",
                 ok: false);
             return;
         }
-        new TranscriptWindow(path, apiKey) { Owner = this }.Show();
+        new TranscriptWindow(path, s) { Owner = this }.Show();
     }
 
     private void OnTranscribeReplayClick(object sender, RoutedEventArgs e)

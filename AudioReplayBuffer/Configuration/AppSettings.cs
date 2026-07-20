@@ -71,6 +71,15 @@ public sealed class AppSettings
     /// </summary>
     public string GroqApiKey { get; set; } = "";
 
+    /// <summary>
+    /// AssemblyAI API key, used when DetectSpeakers is on (free at
+    /// assemblyai.com). Stored only in this local file.
+    /// </summary>
+    public string AssemblyAiApiKey { get; set; } = "";
+
+    /// <summary>Transcribe with speaker detection (Speaker 1 / Speaker 2 …) via AssemblyAI.</summary>
+    public bool DetectSpeakers { get; set; } = false;
+
     /// <summary>Saved files are named Prefix_2026-07-17_21-30-00.mp3.</summary>
     public string FileNamePrefix { get; set; } = "Replay";
 
@@ -186,6 +195,10 @@ public sealed class AppSettings
 
           // Groq API key for transcription (free at console.groq.com). Local only.
           "GroqApiKey": "",
+          // AssemblyAI key for speaker detection (free at assemblyai.com). Local only.
+          "AssemblyAiApiKey": "",
+          // Transcribe with speaker labels (Speaker 1 / 2...) via AssemblyAI.
+          "DetectSpeakers": false,
 
           // Files are named Prefix_2026-07-17_21-30-00.mp3
           "FileNamePrefix": "Replay",

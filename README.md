@@ -38,7 +38,8 @@ Someone said something legendary in the call? `Ctrl+Alt+D` clips it, trim it in 
 **Transcription**
 - Right-click any replay or pad → **Transcribe…** — speech-to-text via Groq's hosted Whisper (free API key), with Arabic/English/mixed-language support, copy button, and a `.txt` saved next to the audio
 - **Synced playback**: play the audio inside the transcript window — the current line highlights and scrolls with the sound, and **clicking any line jumps playback to that moment**
-- Needs a free key from [console.groq.com](https://console.groq.com) (⚙ Settings → Transcription). Note: the audio is uploaded to Groq for processing.
+- **Speaker detection** (optional): enable *Detect different speakers* and the transcript shows **Speaker 1 / Speaker 2 …** in distinct colors — click a speaker's name to rename them ("Tareq", "Ahmed") across the whole transcript and the saved `.txt`
+- Needs a free key from [console.groq.com](https://console.groq.com); speaker detection uses a free [assemblyai.com](https://www.assemblyai.com) key instead (⚙ Settings → Transcription). Note: the audio is uploaded to the chosen provider for processing.
 
 **App**
 - Dark UI with an icon rail switching between full-window Soundboard and Replay modes
@@ -129,7 +130,7 @@ Settings are edited in the ⚙ Settings window and stored in `%AppData%\AudioRep
 | `OutputFolder` | `Music\Replays` | Replays folder; the soundboard library is its `Soundboard` subfolder |
 | `VoiceDevice` / `VoiceVolume` / `VoiceAlsoSpeakers` | — / `100` / `true` | Call output device, master volume, self-monitor |
 | `SoundboardOverlap` | `false` | Sounds layer over each other instead of cutting |
-| `GroqApiKey` | — | Free key for transcription (stored only on your PC) |
+| `GroqApiKey` / `AssemblyAiApiKey` / `DetectSpeakers` | — / — / `false` | Transcription keys (stored only on your PC) and speaker-detection toggle |
 | `DesktopGain` / `MicrophoneGain` | `1.0` | Capture volume per source |
 
 ## Troubleshooting
