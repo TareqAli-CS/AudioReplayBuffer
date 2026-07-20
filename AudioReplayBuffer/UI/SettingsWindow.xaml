@@ -1,6 +1,7 @@
 ﻿<Window x:Class="AudioReplayBuffer.UI.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:AudioReplayBuffer.UI"
         Title="Settings — Audio Replay Buffer"
         Icon="/app.ico"
         Width="560" Height="720" MinWidth="500" MinHeight="560"
@@ -91,8 +92,8 @@
                     <StackPanel>
                         <TextBlock Text="Hotkeys" Style="{StaticResource H2}"/>
 
-                        <TextBlock Text="Save full replay" Style="{StaticResource Lbl}"/>
-                        <TextBox x:Name="HotkeyBox" Text="Ctrl+Alt+S"/>
+                        <TextBlock Text="Save full replay (click, then press a combo)" Style="{StaticResource Lbl}"/>
+                        <ui:HotkeyBox x:Name="HotkeyBox" Text="Ctrl+Alt+S"/>
 
                         <Grid>
                             <TextBlock Text="Save short clip" Style="{StaticResource Lbl}"/>
@@ -105,14 +106,14 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="ClipHotkeyBox" Grid.Column="0" Text="Ctrl+Alt+D"/>
+                            <ui:HotkeyBox x:Name="ClipHotkeyBox" Grid.Column="0" Text="Ctrl+Alt+D"/>
                             <Slider x:Name="ClipSecondsSlider" Grid.Column="2" Minimum="10" Maximum="120"
                                     TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
                                     ValueChanged="OnClipSecondsChanged"/>
                         </Grid>
 
                         <TextBlock Text="Quick launcher (search any sound mid-game)" Style="{StaticResource Lbl}"/>
-                        <TextBox x:Name="LauncherHotkeyBox" Text="Ctrl+Alt+Q"/>
+                        <ui:HotkeyBox x:Name="LauncherHotkeyBox" Text="Ctrl+Alt+Q"/>
                     </StackPanel>
                 </Border>
 

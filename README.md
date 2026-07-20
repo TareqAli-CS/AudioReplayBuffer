@@ -86,7 +86,7 @@ Windows doesn't let apps inject audio into a physical microphone, so every sound
 
 - **Play:** click a pad (green border = playing; click again stops it). *Stop all* or `Ctrl+Alt+0` silences everything instantly.
 - **Organize:** ＋ Category creates a category (a subfolder of the library — everything stays visible in Explorer). Drag pads onto chips to move sounds (**Ctrl+drag copies**), or right-click → *Move / copy to category…*.
-- **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, a `Ctrl+Alt+1..9` slot **or any custom hotkey combo**. *Pin / unpin* keeps favorites at the top.
+- **Customize:** right-click → *Rename / hotkey / volume…* for the label, file name, **pad color**, per-sound volume, category, a `Ctrl+Alt+1..9` slot **or any custom hotkey combo** — click the hotkey field and just **press the combo** to set it (Backspace removes it). *Pin / unpin* keeps favorites at the top.
 - **Share:** the **Export** button zips the whole board (sounds + labels + colors + hotkeys + order); **Import** merges someone else's board into yours without overwriting anything.
 - **Reorder:** drag a pad **onto another pad** to place it before it, or onto empty grid space to send it to the end — the order is remembered.
 - **Edit:** right-click → *Edit sound…* opens the full editor; saved copies appear on the board immediately.
