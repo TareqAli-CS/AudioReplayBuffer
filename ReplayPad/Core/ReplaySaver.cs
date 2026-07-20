@@ -35,19 +35,53 @@ public sealed class ReplaySaver(AppSettings settings)
             TryDelete(mp3Path);
         }
 
-        string? ffmpeg = FindFFmpeg();
-        if (ffmpeg != null)
+        try
         {
-            EncodeWithFFmpeg(ffmpeg, pcm, mp3Path);
-            return mp3Path;
-        }
+            string? ffmpeg = FindFFmpeg();
+            if (ffmpeg != null)
+            {
+                EncodeWithFFmpeg(ffmpeg, pcm, mp3Path);
+                return mp3Path;
+            }
 
-        // Last resort: uncompressed WAV beats losing the recording.
-        string wavPath = UniquePath(folder, baseName, ".wav");
-        using var wavSource = CreateWaveStream(pcm);
-        WaveFileWriter.CreateWaveFile(wavPath, wavSource);
-        Logger.Log("No MP3 encoder available — saved WAV instead: " + wavPath);
-        return wavPath;
+            // Last resort: uncompressed WAV beats losing the recording.
+            string wavPath = UniquePath(folder, baseName, ".wav");
+            using var wavSource = CreateWaveStream(pcm);
+            WaveFileWriter.CreateWaveFile(wavPath, wavSource);
+            Logger.Log("No MP3 encoder available — saved WAV instead: " + wavPath);
+            return wavPath;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(ex.Message + ControlledFolderHint(folder), ex);
+        }
+    }
+
+    /// <summary>
+    /// Every encoder failing on a folder Windows Ransomware Protection
+    /// guards (Music, Documents, …) is almost always Controlled Folder
+    /// Access blocking this exe — the errors it produces ("no such file")
+    /// are misleading, so spell it out.
+    /// </summary>
+    private static string ControlledFolderHint(string folder)
+    {
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        bool inProtected = new[]
+        {
+            Environment.SpecialFolder.MyMusic, Environment.SpecialFolder.MyDocuments,
+            Environment.SpecialFolder.MyPictures, Environment.SpecialFolder.MyVideos,
+            Environment.SpecialFolder.Desktop
+        }.Any(sf =>
+        {
+            string p = Environment.GetFolderPath(sf);
+            return p.Length > 0 && folder.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+        }) || folder.StartsWith(profile, StringComparison.OrdinalIgnoreCase);
+
+        return inProtected
+            ? "\n\nIf this keeps happening, Windows Ransomware Protection is likely blocking ReplayPad: " +
+              "Windows Security → Virus & threat protection → Manage ransomware protection → " +
+              "Allow an app through Controlled folder access → add ReplayPad.exe."
+            : "";
     }
 
     /// <summary>
