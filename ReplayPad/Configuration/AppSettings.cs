@@ -95,28 +95,75 @@ public sealed class AppSettings
     [JsonIgnore]
     public CaptureMode Mode { get; private set; } = Configuration.CaptureMode.Desktop;
 
+    /// <summary>
+    /// Never throws for a broken file: a corrupted/empty appsettings.json
+    /// (e.g. the process was killed mid-write) recovers from the .bak kept
+    /// by Save(), and as a last resort falls back to defaults — a recorder
+    /// must not refuse to start over a config file.
+    /// </summary>
     public static AppSettings Load()
     {
         string path = Core.AppPaths.SettingsPath;
         if (!File.Exists(path))
             File.WriteAllText(path, DefaultJson);
 
+        try
+        {
+            return Parse(File.ReadAllText(path));
+        }
+        catch (Exception ex)
+        {
+            Core.Logger.Log("appsettings.json is unreadable: " + ex.Message);
+        }
+
+        string backup = path + ".bak";
+        if (File.Exists(backup))
+        {
+            try
+            {
+                var recovered = Parse(File.ReadAllText(backup));
+                Core.Logger.Log("Recovered settings from appsettings.json.bak.");
+                recovered.Save();
+                return recovered;
+            }
+            catch (Exception ex)
+            {
+                Core.Logger.Log("Settings backup is also unreadable: " + ex.Message);
+            }
+        }
+
+        Core.Logger.Log("Falling back to default settings.");
+        File.WriteAllText(path, DefaultJson);
+        return Parse(DefaultJson);
+    }
+
+    private static AppSettings Parse(string json)
+    {
         var options = new JsonSerializerOptions
         {
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
             PropertyNameCaseInsensitive = true
         };
-
-        var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), options) ?? new AppSettings();
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, options) ?? new AppSettings();
         settings.Validate();
         return settings;
     }
 
+    /// <summary>
+    /// Atomic save: write to a temp file and swap it in, keeping the
+    /// previous version as .bak. A kill mid-write can no longer truncate
+    /// the real file.
+    /// </summary>
     public void Save()
     {
-        File.WriteAllText(Core.AppPaths.SettingsPath,
-            JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        string path = Core.AppPaths.SettingsPath;
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        if (File.Exists(path))
+            File.Replace(temp, path, path + ".bak");
+        else
+            File.Move(temp, path);
     }
 
     public void Validate()

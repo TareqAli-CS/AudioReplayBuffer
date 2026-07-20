@@ -29,24 +29,35 @@ public sealed class SoundboardStore
     public SoundboardStore(string? storePath = null)
     {
         _storePath = storePath ?? AppPaths.SoundboardPath;
+        _data = TryLoad(_storePath) ?? TryLoad(_storePath + ".bak") ?? new StoreData();
+    }
+
+    private static StoreData? TryLoad(string path)
+    {
         try
         {
-            _data = File.Exists(_storePath)
-                ? JsonSerializer.Deserialize<StoreData>(File.ReadAllText(_storePath)) ?? new StoreData()
-                : new StoreData();
+            if (!File.Exists(path))
+                return null;
+            return JsonSerializer.Deserialize<StoreData>(File.ReadAllText(path));
         }
         catch (Exception ex)
         {
-            Logger.Log("Could not load soundboard.json, starting fresh: " + ex.Message);
-            _data = new StoreData();
+            Logger.Log($"Could not load {Path.GetFileName(path)}: {ex.Message}");
+            return null;
         }
     }
 
+    /// <summary>Atomic save with a .bak of the previous version (kill-safe).</summary>
     private void Save()
     {
         try
         {
-            File.WriteAllText(_storePath, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
+            string temp = _storePath + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
+            if (File.Exists(_storePath))
+                File.Replace(temp, _storePath, _storePath + ".bak");
+            else
+                File.Move(temp, _storePath);
         }
         catch (Exception ex)
         {
