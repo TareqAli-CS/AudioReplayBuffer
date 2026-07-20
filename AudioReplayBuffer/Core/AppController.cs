@@ -86,42 +86,39 @@ public sealed class AppController : IDisposable
         AudioCaptureEngine.BufferFormat.BlockAlign,
         AudioCaptureEngine.BytesPerSecond);
 
-    /// <summary>Registers all hotkeys (save, clip, assigned soundboard slots). Returns errors or "".</summary>
+    /// <summary>
+    /// Registers all hotkeys (save/clip/launcher/stop, slots, per-sound
+    /// customs). Everything managed is unregistered first so swapping two
+    /// combos in one save works, then duplicates are reported with the
+    /// name of the binding that owns the combo. Returns errors or "".
+    /// </summary>
     public string RegisterHotkey()
     {
-        var errors = new List<string>();
-        if (!_hotkeys.TryRegister(MainHotkeyId, Settings.Hotkey, out string mainError))
-            errors.Add(mainError);
-        if (!_hotkeys.TryRegister(ClipHotkeyId, Settings.ClipHotkey, out string clipError))
-            errors.Add(clipError);
-        if (!_hotkeys.TryRegister(LauncherHotkeyId, Settings.LauncherHotkey, out string launcherError))
-            errors.Add(launcherError);
+        var bindings = new List<(int Id, string Combo, string Name, string? SoundPath)>();
+
+        void Add(int id, string combo, string name, string? soundPath = null)
+        {
+            if (string.IsNullOrWhiteSpace(combo))
+                _hotkeys.Unregister(id);
+            else
+                bindings.Add((id, combo.Trim(), name, soundPath));
+        }
+
+        Add(MainHotkeyId, Settings.Hotkey, "Save replay");
+        Add(ClipHotkeyId, Settings.ClipHotkey, "Save clip");
+        Add(LauncherHotkeyId, Settings.LauncherHotkey, "Quick launcher");
+        Add(StopSoundHotkeyId, Settings.StopHotkey, "Stop all");
 
         for (int slot = 1; slot <= SoundboardStore.SlotCount; slot++)
         {
-            if (Soundboard.PathOfSlot(slot) != null)
-            {
-                if (!_hotkeys.TryRegister(SlotHotkeyBase + slot, $"Ctrl+Alt+D{slot}", out string slotError))
-                    errors.Add(slotError);
-            }
+            string? slotPath = Soundboard.PathOfSlot(slot);
+            if (slotPath != null)
+                Add(SlotHotkeyBase + slot, $"Ctrl+Alt+{slot}",
+                    $"soundboard slot {slot} ({Path.GetFileNameWithoutExtension(slotPath)})");
             else
-            {
                 _hotkeys.Unregister(SlotHotkeyBase + slot);
-            }
         }
 
-        if (!string.IsNullOrWhiteSpace(Settings.StopHotkey))
-        {
-            if (!_hotkeys.TryRegister(StopSoundHotkeyId, Settings.StopHotkey, out string stopError))
-                errors.Add(stopError);
-        }
-        else
-        {
-            _hotkeys.Unregister(StopSoundHotkeyId);
-        }
-
-        // Per-sound custom hotkeys get dynamic ids; re-registered from scratch
-        // so removed bindings release their key combos.
         foreach (int id in _customHotkeyPaths.Keys)
             _hotkeys.Unregister(id);
         _customHotkeyPaths.Clear();
@@ -130,11 +127,37 @@ public sealed class AppController : IDisposable
         {
             if (!File.Exists(path))
                 continue;
-            if (_hotkeys.TryRegister(nextId, hotkey, out string customError))
-                _customHotkeyPaths[nextId] = path;
-            else
-                errors.Add(customError);
-            nextId++;
+            string soundName = Soundboard.GetLabel(path) ?? Path.GetFileNameWithoutExtension(path);
+            Add(nextId++, hotkey, $"sound \"{soundName}\"", path);
+        }
+
+        // Release every combo we hold before re-acquiring, so swapping two
+        // hotkeys in a single save doesn't collide with the old bindings.
+        foreach (var binding in bindings)
+            _hotkeys.Unregister(binding.Id);
+
+        var errors = new List<string>();
+        var owners = new Dictionary<(uint, uint), string>();
+        foreach (var binding in bindings)
+        {
+            if (!HotkeyManager.TryParse(binding.Combo, out uint mods, out var key, out string parseError))
+            {
+                errors.Add($"{binding.Name}: {parseError}");
+                continue;
+            }
+            if (owners.TryGetValue((mods, (uint)key), out string? owner))
+            {
+                errors.Add($"{binding.Name} wants \"{binding.Combo}\", but it is already used by {owner} — change one of them.");
+                continue;
+            }
+            if (!_hotkeys.TryRegister(binding.Id, binding.Combo, out string registerError))
+            {
+                errors.Add($"{binding.Name}: {registerError}");
+                continue;
+            }
+            owners[(mods, (uint)key)] = binding.Name;
+            if (binding.SoundPath != null)
+                _customHotkeyPaths[binding.Id] = binding.SoundPath;
         }
 
         return string.Join(" ", errors);

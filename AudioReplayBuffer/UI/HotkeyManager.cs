@@ -24,16 +24,13 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
     public HotkeyManager() => CreateHandle(new CreateParams());
 
     /// <summary>
-    /// Parses e.g. "Ctrl+Alt+S" or "F9" and registers it globally under the
-    /// given id, replacing whatever that id was bound to before.
+    /// Parses e.g. "Ctrl+Alt+S" or "F9" into modifier flags and a key, so
+    /// callers can compare combos for conflicts before registering.
     /// </summary>
-    public bool TryRegister(int id, string hotkey, out string error)
+    public static bool TryParse(string hotkey, out uint modifiers, out Keys key, out string error)
     {
-        if (_registered.Remove(id))
-            UnregisterHotKey(Handle, id);
-
-        uint modifiers = ModNoRepeat;
-        Keys key = Keys.None;
+        modifiers = 0;
+        key = Keys.None;
 
         foreach (var part in hotkey.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
@@ -61,8 +58,23 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
             error = $"Hotkey \"{hotkey}\" has no main key.";
             return false;
         }
+        error = "";
+        return true;
+    }
 
-        if (!RegisterHotKey(Handle, id, modifiers, (uint)key))
+    /// <summary>
+    /// Registers a parsed combo globally under the given id, replacing
+    /// whatever that id was bound to before.
+    /// </summary>
+    public bool TryRegister(int id, string hotkey, out string error)
+    {
+        if (_registered.Remove(id))
+            UnregisterHotKey(Handle, id);
+
+        if (!TryParse(hotkey, out uint modifiers, out Keys key, out error))
+            return false;
+
+        if (!RegisterHotKey(Handle, id, modifiers | ModNoRepeat, (uint)key))
         {
             error = $"Hotkey \"{hotkey}\" is already in use by another application.";
             return false;
